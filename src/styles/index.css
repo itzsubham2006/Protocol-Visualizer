@@ -56,13 +56,13 @@ body {
 .app-header {
   background: var(--bg-navbar);
   border-bottom: 1px solid var(--border-default);
-  padding: 10px 16px;
+  padding: 16px 28px;
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   z-index: 50;
-  gap: 8px;
+  gap: 14px;
 }
 
 .app-header-top {
@@ -102,7 +102,7 @@ body {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 16px;
   width: 100%;
 }
 
@@ -760,6 +760,7 @@ body {
   overflow-wrap: break-word;
   flex: 1;
   min-width: 200px;
+  margin-left: 8px;
 }
 
 /* Event Source Tags (Timeline) */
@@ -964,8 +965,8 @@ input:checked + .slider:before {
 
 @media (max-width: 480px) {
   .app-header {
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 14px 18px;
+    gap: 12px;
   }
 
   .app-logo-text {
@@ -973,11 +974,11 @@ input:checked + .slider:before {
   }
 
   .app-header-sub {
-    gap: 6px;
+    gap: 12px;
   }
 
   .navbar-toggle-container {
-    padding: 2px 6px;
+    padding: 3px 8px;
     gap: 6px;
   }
 
@@ -986,7 +987,7 @@ input:checked + .slider:before {
   }
 
   .app-network-badge {
-    padding: 2px 6px;
+    padding: 3px 8px;
   }
 
   .app-network-text {
@@ -997,7 +998,8 @@ input:checked + .slider:before {
     font-size: 10px;
     width: 100%;
     min-width: 0;
-    margin-top: 2px;
+    margin-top: 6px;
+    margin-left: 0;
   }
 
   .dashboard-layout {
