@@ -1,4 +1,4 @@
-# ⚡ Protocol Visualizer
+#  Protocol Visualizer
 
 An interactive dual-panel protocol visualization dashboard built with React + Vite. Simulate and inspect DNS, HTTP, SMTP, and HLS adaptive streaming protocols in real-time with animated step-by-step playback.
 
@@ -8,7 +8,7 @@ An interactive dual-panel protocol visualization dashboard built with React + Vi
 
 ---
 
-## 🎯 Features
+##  Features
 
 - **Dual-Panel Layout** — Activity panel (left) and Protocol Inspector (right) synchronized in real-time
 - **Three Activity Modes**
@@ -23,7 +23,7 @@ An interactive dual-panel protocol visualization dashboard built with React + Vi
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 src/
@@ -73,7 +73,7 @@ No WebSockets, no events, no polling. Just React's built-in re-rendering.
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -105,23 +105,23 @@ npm run preview
 
 ---
 
-## 📖 Usage Guide
+##  Usage Guide
 
-### 🌐 Browsing Mode
+###  Browsing Mode
 
 1. Select the **Browsing** tab
 2. Enter a URL (default: `https://example.com`)
 3. Click **"Visit Page"**
 4. Watch the right panel animate: **DNS query → DNS response → HTTP GET → 200 OK → CSS/JS/image sub-resources**
 
-### ✉️ Mail Mode
+###  Mail Mode
 
 1. Select the **Mail** tab
 2. Fill in recipient, subject, and body (pre-filled with defaults)
 3. Click **"Send Email"**
 4. Watch the full SMTP conversation: **220 greeting → EHLO → MAIL FROM → RCPT TO → DATA → 354 → message → 250 queued → QUIT → 221 Bye**
 
-### 📺 Streaming Mode
+###  Streaming Mode
 
 1. Select the **Streaming** tab
 2. Choose quality (360p / 720p / 1080p) and segment count
@@ -142,7 +142,7 @@ Click any **timeline step** to expand its message card showing raw protocol text
 
 ---
 
-## 🎨 Design
+##  Design
 
 - **Theme**: Dark cyberpunk with glassmorphism cards
 - **Protocol Colors**:
@@ -155,7 +155,7 @@ Click any **timeline step** to expand its message card showing raw protocol text
 
 ---
 
-## 🔬 Protocol Accuracy
+##  Protocol Accuracy
 
 All protocol simulations follow their respective RFCs:
 
@@ -168,7 +168,7 @@ All protocol simulations follow their respective RFCs:
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Technology | Purpose |
 |-----------|---------|
@@ -180,6 +180,6 @@ All protocol simulations follow their respective RFCs:
 
 ---
 
-## 📝 License
+##  License
 
 This project is licensed under the MIT License.
