@@ -25,5 +25,5 @@ COPY --from=frontend-builder /app/dist ./dist
 # Expose default port
 EXPOSE 8000
 
-# Run uvicorn bound to $PORT (compatible with Render, Railway, Fly.io, etc.)
-CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Run server via backend.main which natively reads $PORT from environment
+CMD ["python", "-m", "backend.main"]
