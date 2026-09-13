@@ -44,15 +44,18 @@ function AppContent() {
     <div className="app">
       {/* TOP NAVBAR */}
       <header className="app-header">
-        <div className="app-logo">
-          {/* Logo Icon with SVG lightning path */}
-          <div className="app-logo-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
+        <div className="app-header-top">
+          <div className="app-logo">
+            <div className="app-logo-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </div>
+            <span className="app-logo-text">Protocol Visualizer</span>
           </div>
-          <span className="app-logo-text">Protocol Visualizer</span>
+        </div>
 
+        <div className="app-header-sub">
           {/* Real-Time Network Toggle Switch */}
           <div className="navbar-toggle-container" title="Toggle between Real-Time Network operations and Offline Simulation">
             <span className="navbar-toggle-label">Real-Time</span>
@@ -72,16 +75,14 @@ function AppContent() {
             <span className={`app-network-dot ${isActuallyReal ? 'real' : 'simulated'}`}></span>
             <span className={`app-network-text ${isActuallyReal ? 'real' : 'simulated'}`}>
               {!realTimeEnabled
-                ? 'SIMULATION MODE (OFFLINE)'
+                ? 'SIMULATION'
                 : isRealNetwork
-                ? 'REAL-TIME NETWORK MODE'
-                : 'REAL-TIME (BACKEND OFFLINE)'}
+                ? 'REAL-TIME'
+                : 'OFFLINE'}
             </span>
           </div>
-        </div>
 
-        <div className="app-nav-right">
-          <div className="app-status-text">
+          <div className="app-status-text" title={statusText}>
             {statusText}
           </div>
         </div>

@@ -54,16 +54,21 @@ body {
 
 /* Top Navbar */
 .app-header {
-  height: 50px;
   background: var(--bg-navbar);
   border-bottom: 1px solid var(--border-default);
-  padding: 0 20px;
+  padding: 10px 16px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   position: sticky;
   top: 0;
   z-index: 50;
+  gap: 8px;
+}
+
+.app-header-top {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .app-logo {
@@ -73,8 +78,8 @@ body {
 }
 
 .app-logo-icon {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 0;
   background: #3b3a3a;
   border: 1px solid #4a4949;
@@ -82,53 +87,23 @@ body {
   align-items: center;
   justify-content: center;
   color: #ffffff;
+  flex-shrink: 0;
 }
 
 .app-logo-text {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #f1f5f9;
   letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
-.app-live-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #3b3a3a;
-  border: 1px solid #4a4949;
-  padding: 2px 8px;
-  border-radius: 0;
-  margin-left: 6px;
-}
-
-.app-live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 0;
-  background-color: #10b981;
-}
-
-.app-live-text {
-  font-size: 10px;
-  font-weight: 700;
-  color: #34d399;
-  letter-spacing: 0.5px;
-}
-
-.app-nav-right {
+.app-header-sub {
   display: flex;
   align-items: center;
-}
-
-.app-tls-badge {
-  background: #3b3a3a;
-  border: 1px solid #4a4949;
-  border-radius: 0;
-  padding: 3px 10px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: #f1f5f9;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
 }
 
 /* Main Two-Panel Layout */
@@ -385,23 +360,30 @@ body {
 
 .log-entry {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 8px;
   background: var(--bg-input);
   border: 1px solid var(--border-default);
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 0;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .log-entry-time {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-subtle);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 1px;
 }
 
 .log-entry-message {
   color: var(--text-code);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  flex: 1;
 }
 
 /* Protocol Inspector Empty State */
@@ -584,6 +566,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
   margin-bottom: 4px;
 }
 
@@ -644,6 +628,8 @@ body {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-code);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Message Detail Card */
@@ -671,6 +657,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-white);
+  flex-wrap: wrap;
 }
 
 .message-card-toggle {
@@ -732,7 +719,7 @@ body {
   border: 1px solid #4a4949;
   padding: 2px 8px;
   border-radius: 0;
-  margin-left: 6px;
+  flex-shrink: 0;
 }
 
 .app-network-dot {
@@ -766,8 +753,13 @@ body {
 .app-status-text {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-muted);
-  text-align: right;
+  color: var(--text-subtle);
+  text-align: left;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  flex: 1;
+  min-width: 200px;
 }
 
 /* Event Source Tags (Timeline) */
@@ -824,7 +816,7 @@ body {
   background: #1a1a1c;
   border: 1px solid #3b3a3a;
   padding: 3px 10px;
-  margin-left: 12px;
+  flex-shrink: 0;
 }
 
 .navbar-toggle-label {
@@ -921,5 +913,122 @@ input:checked + .slider:before {
   padding: 10px 12px;
   margin-bottom: 10px;
 }
+
+/* Responsive Media Queries for Small Screens */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    padding: 12px 10px 20px 10px;
+    gap: 14px;
+  }
+
+  .panel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .playback-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .playback-buttons {
+    order: 1;
+  }
+
+  .playback-speed {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .playback-progress {
+    order: 3;
+    width: 100%;
+    flex: none;
+  }
+
+  .panel-header {
+    padding: 0 12px;
+    height: 38px;
+  }
+
+  .panel-body {
+    padding: 14px 10px;
+  }
+
+  .activity-tabs {
+    margin-bottom: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .app-logo-text {
+    font-size: 14px;
+  }
+
+  .app-header-sub {
+    gap: 6px;
+  }
+
+  .navbar-toggle-container {
+    padding: 2px 6px;
+    gap: 6px;
+  }
+
+  .navbar-toggle-label {
+    font-size: 10px;
+  }
+
+  .app-network-badge {
+    padding: 2px 6px;
+  }
+
+  .app-network-text {
+    font-size: 9px;
+  }
+
+  .app-status-text {
+    font-size: 10px;
+    width: 100%;
+    min-width: 0;
+    margin-top: 2px;
+  }
+
+  .dashboard-layout {
+    padding: 8px 6px 16px 6px;
+    gap: 12px;
+  }
+
+  .activity-tab {
+    font-size: 11px;
+    height: 30px;
+  }
+
+  .btn-primary-action {
+    height: 38px;
+    font-size: 12px;
+  }
+
+  .message-raw {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+
+  .field-chip {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .event-source-badge {
+    margin-left: 0;
+  }
+}
+
 
 
