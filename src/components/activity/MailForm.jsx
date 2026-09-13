@@ -7,6 +7,7 @@ export default function MailForm() {
   const [subject, setSubject] = useState('Hello from Protocol Visualizer');
   const [body, setBody] = useState('This is a real email sent over TCP socket with STARTTLS and SMTP protocol flow.\n\nBest regards,\nProtocol Visualizer');
   const [smtpConfig, setSmtpConfig] = useState(null);
+  const [targetMode, setTargetMode] = useState('local'); // 'local' or 'live'
 
   const { startActivity, isPlaying, dispatch, realTimeEnabled, isRealNetwork } = useSession();
 
@@ -38,18 +39,20 @@ export default function MailForm() {
       return;
     }
 
-    // Real network mode via backend SSE (credentials read from .env)
+    // Real network mode via backend SSE
     try {
       dispatch({ type: 'START_STREAMING_ACTIVITY', activityType: 'mail' });
 
-      const isLive = smtpConfig && smtpConfig.is_live;
-      const targetServer = isLive ? `${smtpConfig.host}:${smtpConfig.port}` : '127.0.0.1:2525';
+      const isLive = targetMode === 'live' && smtpConfig && smtpConfig.is_live;
+      const targetHost = isLive ? smtpConfig.host : '127.0.0.1';
+      const targetPort = isLive ? smtpConfig.port : 2525;
+      const targetServer = `${targetHost}:${targetPort}`;
 
       dispatch({
         type: 'ADD_LOG',
         message: isLive
           ? `[Real Network] Connecting to ${targetServer} via TLS socket to deliver real email...`
-          : `[Real Network] Connecting to local SMTP test server (${targetServer}) via raw TCP socket...`,
+          : `[Real Network] Connecting to internal SMTP test server (${targetServer}) via raw TCP socket...`,
         logType: 'mail',
       });
 
@@ -57,6 +60,8 @@ export default function MailForm() {
         to: trimmedTo,
         subject: trimmedSubject,
         body: trimmedBody,
+        smtp_host: targetHost,
+        smtp_port: targetPort,
       });
 
       const eventSource = new EventSource(`/api/mail/send?${params.toString()}`);
@@ -120,35 +125,75 @@ export default function MailForm() {
     }
   };
 
-  const isLiveConfigured = smtpConfig && smtpConfig.is_live;
+  const isLive = targetMode === 'live' && isLiveConfigured;
 
   return (
     <form onSubmit={handleSubmit} id="mail-form">
-      {/* Real-time SMTP Status Indicator */}
+      {/* Real-time SMTP Target Selector */}
       {realTimeEnabled && (
-        <div
-          style={{
-            background: isLiveConfigured ? '#064e3b33' : '#1e293b55',
-            border: `1px solid ${isLiveConfigured ? '#10b98188' : '#47556988'}`,
-            padding: '8px 12px',
-            marginBottom: '14px',
-            fontSize: '11px',
-            fontFamily: 'var(--font-mono)',
-          }}
-        >
-          {isLiveConfigured ? (
-            <div style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '7px', height: '7px', background: '#10b981', display: 'inline-block' }}></span>
-              <span>
-                LIVE INBOX DELIVERY ACTIVE: <b>{smtpConfig.user}</b> ({smtpConfig.host}:{smtpConfig.port})
-              </span>
+        <div className="smtp-target-selector">
+          <div className="smtp-target-tabs">
+            <button
+              type="button"
+              className={`smtp-target-tab ${targetMode === 'local' ? 'active' : ''}`}
+              onClick={() => setTargetMode('local')}
+            >
+              Local Test Server (127.0.0.1:2525)
+            </button>
+            <button
+              type="button"
+              className={`smtp-target-tab ${targetMode === 'live' ? 'active' : ''}`}
+              onClick={() => setTargetMode('live')}
+            >
+              Live Mail Delivery (Inbox)
+            </button>
+          </div>
+
+          {targetMode === 'local' ? (
+            <div
+              style={{
+                background: '#064e3b22',
+                border: '1px solid #10b98155',
+                padding: '8px 12px',
+                marginBottom: '14px',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                color: '#34d399',
+              }}
+            >
+              ✓ Internal RFC 5321 SMTP socket server active on 127.0.0.1:2525. Performs real raw TCP exchange without cloud firewall restrictions.
             </div>
           ) : (
-            <div style={{ color: 'var(--text-muted)' }}>
-              <span>Using Local Server (127.0.0.1:2525).</span>{' '}
-              <span style={{ color: 'var(--accent-cyan)' }}>
-                Set SMTP_USER & SMTP_PASS in <code>.env</code> to deliver to real inboxes.
-              </span>
+            <div
+              style={{
+                background: isLiveConfigured ? '#064e3b33' : '#1e293b55',
+                border: `1px solid ${isLiveConfigured ? '#10b98188' : '#47556988'}`,
+                padding: '8px 12px',
+                marginBottom: '14px',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              {isLiveConfigured ? (
+                <div>
+                  <div style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    <span style={{ width: '7px', height: '7px', background: '#10b981', display: 'inline-block' }}></span>
+                    <span>
+                      LIVE INBOX RELAY: <b>{smtpConfig.user}</b> ({smtpConfig.host}:{smtpConfig.port})
+                    </span>
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '10px' }}>
+                    Note: Cloud hosts (Railway free/trial tier) block outbound port 587. For live Gmail delivery, run Protocol Visualizer locally.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ color: 'var(--text-muted)' }}>
+                  <span>Using Local Server (127.0.0.1:2525).</span>{' '}
+                  <span style={{ color: 'var(--accent-cyan)' }}>
+                    Set SMTP_USER & SMTP_PASS in <code>.env</code> to deliver to real inboxes.
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -201,9 +246,9 @@ export default function MailForm() {
             ? 'Restart Send'
             : !realTimeEnabled
             ? 'Simulate Email (Offline) →'
-            : isLiveConfigured
+            : isLive
             ? 'Deliver Real Email to Inbox →'
-            : 'Send via Local SMTP Socket →'}
+            : 'Send via Real SMTP Socket (127.0.0.1:2525) →'}
         </span>
       </button>
     </form>

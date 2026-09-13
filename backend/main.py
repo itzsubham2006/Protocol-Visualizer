@@ -5,6 +5,7 @@ from starlette.responses import StreamingResponse, Response
 from urllib.parse import urlparse
 import uvicorn
 import asyncio
+import threading
 from dotenv import load_dotenv
 
 # Load .env file at startup
@@ -20,6 +21,25 @@ from backend.networking.stream_service import (
     perform_streaming_session
 )
 from backend.networking.events import event_to_sse, done_sse
+from backend.smtp_server import handle_smtp_client
+
+# Automatically start internal SMTP test server on 127.0.0.1:2525 in background daemon thread
+def _start_internal_smtp_server():
+    async def _run():
+        try:
+            server = await asyncio.start_server(handle_smtp_client, "127.0.0.1", 2525)
+            async with server:
+                await server.serve_forever()
+        except Exception as e:
+            # Server may already be running or port occupied
+            pass
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(_run())
+
+_smtp_daemon = threading.Thread(target=_start_internal_smtp_server, daemon=True)
+_smtp_daemon.start()
 
 app = FastAPI(title="Protocol Visualizer Real Network Backend")
 
@@ -112,11 +132,22 @@ async def mail_send(
     env_pass = os.getenv("SMTP_PASS", "").strip()
     env_from = os.getenv("SMTP_FROM", "").strip() or env_user
 
-    actual_host = (smtp_host.strip() if smtp_host and smtp_host.strip() else env_host) or "127.0.0.1"
+    if smtp_host and smtp_host.strip():
+        actual_host = smtp_host.strip()
+    elif smtp_port in (2525, 2529):
+        actual_host = "127.0.0.1"
+    else:
+        actual_host = env_host or "127.0.0.1"
+
     actual_port = smtp_port if smtp_port is not None else env_port
     actual_user = username.strip() if username and username.strip() else env_user
     actual_pass = password if password is not None and password != "" else env_pass
     actual_from = from_email.strip() if from_email and from_email.strip() else env_from
+
+    # If targeting local test server, do not use external auth
+    if actual_host in ("127.0.0.1", "localhost"):
+        actual_user = ""
+        actual_pass = ""
 
     async def event_generator():
         events = perform_smtp_conversation(

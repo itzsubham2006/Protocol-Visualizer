@@ -63,15 +63,49 @@ def perform_smtp_conversation(
         step_counter += 1
 
     try:
-        sock = socket.create_connection((smtp_host, int(smtp_port)), timeout=10)
+        sock = None
+        last_err = None
+        # 1. Try IPv4 explicitly first (prevents [Errno 101] Network is unreachable on Linux containers without IPv6 routes)
+        try:
+            for res in socket.getaddrinfo(smtp_host, int(smtp_port), socket.AF_INET, socket.SOCK_STREAM):
+                af, socktype, proto, canonname, sa = res
+                s = None
+                try:
+                    s = socket.socket(af, socktype, proto)
+                    s.settimeout(10)
+                    s.connect(sa)
+                    sock = s
+                    break
+                except Exception as ex:
+                    last_err = ex
+                    if s:
+                        s.close()
+        except Exception as ex:
+            last_err = ex
+
+        # 2. If IPv4 resolution wasn't applicable, fallback to create_connection
+        if not sock:
+            sock = socket.create_connection((smtp_host, int(smtp_port)), timeout=10)
     except Exception as e:
+        err_msg = str(e)
+        is_cloud_block = "101" in err_msg or "timed out" in err_msg.lower() or "unreachable" in err_msg.lower()
+        if smtp_host in ("127.0.0.1", "localhost"):
+            hint = "Internal SMTP test server is starting. Please retry in a few seconds."
+        elif is_cloud_block:
+            hint = (
+                f"Cloud platforms (such as Railway or Render free/trial tier) block outbound traffic on SMTP ports (25, 465, 587) to prevent spam.\n\n"
+                f"• Switch to 'Local Test Server (127.0.0.1:2525)' to experience the full, real TCP RFC 5321 SMTP conversation.\n"
+                f"• For live inbox delivery using your Gmail credentials, run Protocol Visualizer locally on your computer where home internet does not block port 587."
+            )
+        else:
+            hint = f"Check hostname, port, or network connection to {smtp_host}."
+
         add_event(
             "server→client",
             f"Cannot connect to SMTP test server at {smtp_host}:{smtp_port}",
-            f"Connection failed: {str(e)}\n\n"
-            + (f"To start the local SMTP test server, run:\n  python backend/smtp_server.py" if smtp_host in ("127.0.0.1", "localhost") else f"Check hostname, port, or network connection to {smtp_host}."),
+            f"Connection failed: {err_msg}\n\n{hint}",
             [
-                {"label": "Error", "value": str(e)},
+                {"label": "Error", "value": err_msg},
                 {"label": "Host", "value": f"{smtp_host}:{smtp_port}"},
             ],
         )
