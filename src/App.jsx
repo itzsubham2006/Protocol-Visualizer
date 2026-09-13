@@ -10,7 +10,7 @@ function AppContent() {
     // Check if FastAPI backend is available
     fetch('/api/status')
       .then(res => res.json())
-      .then(data => {
+      .then(() => {
         dispatch({ type: 'SET_REAL_NETWORK', value: true });
         if (realTimeEnabled) {
           setStatusText('Live network requests, DNS resolution, TCP sockets & real email');

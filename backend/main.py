@@ -22,6 +22,7 @@ from backend.networking.stream_service import (
 )
 from backend.networking.events import event_to_sse, done_sse
 from backend.smtp_server import handle_smtp_client
+from backend.networking.api_mailer import perform_api_mail_delivery
 
 # Automatically start internal SMTP test server on 127.0.0.1:2525 in background daemon thread
 def _start_internal_smtp_server():
@@ -60,8 +61,8 @@ def status():
 
 @app.get("/api/mail/config")
 def mail_config():
-    """Returns current SMTP configuration status from .env."""
-    load_dotenv(override=True)  # reload in case user updated .env while server runs
+    """Returns current SMTP and HTTP Email API configuration status."""
+    load_dotenv(override=True)
     host = os.getenv("SMTP_HOST", "127.0.0.1").strip()
     port = int(os.getenv("SMTP_PORT", "2525") or "2525")
     user = os.getenv("SMTP_USER", "").strip()
@@ -69,8 +70,17 @@ def mail_config():
     from_email = os.getenv("SMTP_FROM", "").strip() or user
     is_live = bool(user and has_pass and host not in ("127.0.0.1", "localhost"))
 
+    resend_key = os.getenv("RESEND_API_KEY", "").strip()
+    brevo_key = os.getenv("BREVO_API_KEY", "").strip()
+    has_api = bool(resend_key or brevo_key)
+    api_provider = "Resend (HTTPS)" if resend_key else ("Brevo (HTTPS)" if brevo_key else None)
+
     return {
-        "is_live": is_live,
+        "is_live": is_live or has_api,
+        "has_api": has_api,
+        "api_provider": api_provider,
+        "has_resend": bool(resend_key),
+        "has_brevo": bool(brevo_key),
         "host": host,
         "port": port,
         "user": user,
@@ -121,9 +131,10 @@ async def mail_send(
     smtp_port: int = None,
     username: str = None,
     password: str = None,
-    from_email: str = None
+    from_email: str = None,
+    delivery_method: str = "auto",
+    api_key: str = None
 ):
-    # Reload .env in case user just edited it
     load_dotenv(override=True)
 
     env_host = os.getenv("SMTP_HOST", "127.0.0.1").strip()
@@ -149,17 +160,29 @@ async def mail_send(
         actual_user = ""
         actual_pass = ""
 
+    has_cloud_api = bool((api_key and api_key.strip()) or os.getenv("RESEND_API_KEY") or os.getenv("BREVO_API_KEY"))
+    use_api_delivery = (delivery_method == "api") or (delivery_method == "auto" and has_cloud_api and actual_host not in ("127.0.0.1", "localhost"))
+
     async def event_generator():
-        events = perform_smtp_conversation(
-            to=to,
-            subject=subject,
-            body=body,
-            smtp_host=actual_host,
-            smtp_port=actual_port,
-            username=actual_user,
-            password=actual_pass,
-            from_email=actual_from
-        )
+        if use_api_delivery:
+            events = await perform_api_mail_delivery(
+                to=to,
+                subject=subject,
+                body=body,
+                api_key=api_key,
+                from_email=actual_from
+            )
+        else:
+            events = perform_smtp_conversation(
+                to=to,
+                subject=subject,
+                body=body,
+                smtp_host=actual_host,
+                smtp_port=actual_port,
+                username=actual_user,
+                password=actual_pass,
+                from_email=actual_from
+            )
         for ev in events:
             yield event_to_sse(ev)
             await asyncio.sleep(0.01)

@@ -8,6 +8,7 @@ export default function MailForm() {
   const [body, setBody] = useState('This is a real email sent over TCP socket with STARTTLS and SMTP protocol flow.\n\nBest regards,\nProtocol Visualizer');
   const [smtpConfig, setSmtpConfig] = useState(null);
   const [targetMode, setTargetMode] = useState('local'); // 'local' or 'live'
+  const [resendApiKey, setResendApiKey] = useState('');
 
   const { startActivity, isPlaying, dispatch, realTimeEnabled, isRealNetwork } = useSession();
 
@@ -43,14 +44,19 @@ export default function MailForm() {
     try {
       dispatch({ type: 'START_STREAMING_ACTIVITY', activityType: 'mail' });
 
-      const isLive = targetMode === 'live' && smtpConfig && smtpConfig.is_live;
-      const targetHost = isLive ? smtpConfig.host : '127.0.0.1';
-      const targetPort = isLive ? smtpConfig.port : 2525;
-      const targetServer = `${targetHost}:${targetPort}`;
+      const hasDirectApiKey = Boolean(resendApiKey.trim());
+      const hasConfiguredApi = smtpConfig && smtpConfig.has_api;
+      const isApiDelivery = targetMode === 'live' && (hasDirectApiKey || hasConfiguredApi);
+      const isLive = targetMode === 'live' && (isApiDelivery || (smtpConfig && smtpConfig.is_live));
+      const targetHost = targetMode === 'local' ? '127.0.0.1' : (smtpConfig?.host || '127.0.0.1');
+      const targetPort = targetMode === 'local' ? 2525 : (smtpConfig?.port || 587);
+      const targetServer = isApiDelivery ? 'api.resend.com (HTTPS Port 443)' : `${targetHost}:${targetPort}`;
 
       dispatch({
         type: 'ADD_LOG',
-        message: isLive
+        message: isApiDelivery
+          ? `[Real Network] Dispatched live email to ${trimmedTo} via HTTPS Port 443 (Cloud Unblocked)...`
+          : isLive
           ? `[Real Network] Connecting to ${targetServer} via TLS socket to deliver real email...`
           : `[Real Network] Connecting to internal SMTP test server (${targetServer}) via raw TCP socket...`,
         logType: 'mail',
@@ -64,6 +70,13 @@ export default function MailForm() {
         smtp_port: targetPort,
       });
 
+      if (isApiDelivery) {
+        params.set('delivery_method', 'api');
+        if (hasDirectApiKey) {
+          params.set('api_key', resendApiKey.trim());
+        }
+      }
+
       const eventSource = new EventSource(`/api/mail/send?${params.toString()}`);
 
       eventSource.onmessage = (event) => {
@@ -73,7 +86,7 @@ export default function MailForm() {
           if (isLive) {
             dispatch({
               type: 'ADD_LOG',
-              message: `✓ Real email successfully dispatched to ${trimmedTo} via ${smtpConfig.host}! Check recipient inbox.`,
+              message: `✓ Real email successfully dispatched to ${trimmedTo}! Check recipient inbox.`,
               logType: 'mail',
             });
           } else {
@@ -93,9 +106,6 @@ export default function MailForm() {
           // Check if this is a connection error event
           if (step.summary && step.summary.includes('Cannot connect')) {
             dispatch({ type: 'ADD_LOG', message: `Cannot connect to SMTP server at ${targetServer}`, logType: 'mail' });
-            if (!isLive) {
-              dispatch({ type: 'ADD_LOG', message: 'To start local server: python backend/smtp_server.py', logType: 'mail' });
-            }
           }
         } catch (err) {
           console.error('Failed to parse SSE event:', err);
@@ -105,7 +115,6 @@ export default function MailForm() {
       eventSource.onerror = () => {
         eventSource.close();
         dispatch({ type: 'FINISH_STREAMING' });
-        // Fall back to simulation
         dispatch({ type: 'ADD_LOG', message: 'Backend unavailable — using simulation fallback', logType: 'mail' });
         const steps = buildMailSequence({
           to: trimmedTo,
@@ -115,7 +124,6 @@ export default function MailForm() {
         startActivity('mail', steps, `Sending email to ${trimmedTo} (simulated fallback)`);
       };
     } catch {
-      // Fall back to simulation
       const steps = buildMailSequence({
         to: trimmedTo,
         subject: trimmedSubject,
@@ -125,6 +133,10 @@ export default function MailForm() {
     }
   };
 
+  const hasDirectApiKey = Boolean(resendApiKey.trim());
+  const hasConfiguredApi = smtpConfig && smtpConfig.has_api;
+  const isApiDelivery = targetMode === 'live' && (hasDirectApiKey || hasConfiguredApi);
+  const isLiveConfigured = (smtpConfig && smtpConfig.is_live) || hasConfiguredApi || hasDirectApiKey;
   const isLive = targetMode === 'live' && isLiveConfigured;
 
   return (
@@ -166,32 +178,59 @@ export default function MailForm() {
           ) : (
             <div
               style={{
-                background: isLiveConfigured ? '#064e3b33' : '#1e293b55',
-                border: `1px solid ${isLiveConfigured ? '#10b98188' : '#47556988'}`,
-                padding: '8px 12px',
+                background: isLive ? '#064e3b33' : '#1e293b55',
+                border: `1px solid ${isLive ? '#10b98188' : '#47556988'}`,
+                padding: '10px 12px',
                 marginBottom: '14px',
                 fontSize: '11px',
                 fontFamily: 'var(--font-mono)',
               }}
             >
-              {isLiveConfigured ? (
+              {isApiDelivery ? (
+                <div style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '7px', height: '7px', background: '#10b981', display: 'inline-block' }}></span>
+                  <span>
+                    HTTPS CLOUD DELIVERY ACTIVE ({hasDirectApiKey ? 'Custom Resend Key' : smtpConfig.api_provider}). Outbound emails sent over Port 443 — guaranteed to deliver from Railway!
+                  </span>
+                </div>
+              ) : smtpConfig && smtpConfig.is_live ? (
                 <div>
                   <div style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                     <span style={{ width: '7px', height: '7px', background: '#10b981', display: 'inline-block' }}></span>
                     <span>
-                      LIVE INBOX RELAY: <b>{smtpConfig.user}</b> ({smtpConfig.host}:{smtpConfig.port})
+                      LIVE GMAIL RELAY: <b>{smtpConfig.user}</b> ({smtpConfig.host}:{smtpConfig.port})
                     </span>
                   </div>
-                  <div style={{ color: '#94a3b8', fontSize: '10px' }}>
-                    Note: Cloud hosts (Railway free/trial tier) block outbound port 587. For live Gmail delivery, run Protocol Visualizer locally.
+                  <div style={{ color: '#fbbf24', fontSize: '10px', marginTop: '6px', lineHeight: '1.4' }}>
+                    ⚠ Notice: Cloud hosts (Railway free/trial tier) block outbound port 587. To deliver emails from Railway, enter a free Resend API key below or set <code>RESEND_API_KEY</code> in Railway Variables!
+                  </div>
+                  <div style={{ marginTop: '8px' }}>
+                    <input
+                      type="password"
+                      className="form-input"
+                      style={{ height: '32px', fontSize: '11px', background: '#0a0a0c' }}
+                      placeholder="Enter free Resend API Key (re_...) for guaranteed cloud delivery"
+                      value={resendApiKey}
+                      onChange={(e) => setResendApiKey(e.target.value)}
+                    />
                   </div>
                 </div>
               ) : (
-                <div style={{ color: 'var(--text-muted)' }}>
-                  <span>Using Local Server (127.0.0.1:2525).</span>{' '}
-                  <span style={{ color: 'var(--accent-cyan)' }}>
-                    Set SMTP_USER & SMTP_PASS in <code>.env</code> to deliver to real inboxes.
-                  </span>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Deliver real emails to actual inboxes over HTTPS (Port 443) or SMTP:
+                  </div>
+                  <input
+                    type="password"
+                    className="form-input"
+                    style={{ height: '32px', fontSize: '11px', background: '#0a0a0c' }}
+                    placeholder="Enter Resend API Key (re_...) or set RESEND_API_KEY in Railway Variables"
+                    value={resendApiKey}
+                    onChange={(e) => setResendApiKey(e.target.value)}
+                  />
+                  <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '4px' }}>
+                    Free API key available in 30s at <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)' }}>resend.com</a> (3,000 free emails/month).
+                  </div>
                 </div>
               )}
             </div>
