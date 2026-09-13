@@ -1,186 +1,224 @@
-#  Protocol Visualizer
-Website Link = https://protocol-visualizer-seven.vercel.app/
+# Protocol Visualizer (Real Networking Edition)
 
-An interactive dual-panel protocol visualization dashboard built with React + Vite. Simulate and inspect DNS, HTTP, SMTP, and HLS adaptive streaming protocols in real-time with animated step-by-step playback.
+An interactive dual-panel protocol visualization dashboard upgraded with **real network communication** powered by **Python + FastAPI**, raw TCP socket communication, real DNS resolution, real HTTP/HTTPS requests, real HLS media streaming, and real-time Server-Sent Events (SSE).
 
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
-
----
-
-##  Features
-
-- **Dual-Panel Layout** — Activity panel (left) and Protocol Inspector (right) synchronized in real-time
-- **Three Activity Modes**
-  - 🌐 **Browsing** — DNS resolution → HTTP requests with sub-resource fetches (CSS, JS, images)
-  - ✉️ **Mail** — DNS resolution → Full SMTP conversation (13 steps per RFC 5321)
-  - 📺 **Streaming** — DNS resolution → HLS adaptive bitrate (master playlist → variant → segment fetches)
-- **Playback Controls** — Play, pause, step forward/backward, replay, adjustable speed (0.5x–4x)
-- **Keyboard Shortcuts** — `Space` (play/pause), `←` / `→` (step), `R` (replay)
-- **Message Inspector** — Click any timeline step to expand its raw wire-format message and highlighted key fields
-- **Dark Cyberpunk Theme** — Glassmorphism cards, protocol color-coding, neon accents, smooth animations
-- **Fully Responsive** — Two-column grid collapses to single column on mobile/tablet
+> [!IMPORTANT]
+> **Academic Integrity & Transparency Notice**:
+> This project uses **real network communication** for all protocol demonstrations:
+> - **Browsing**: Performs real DNS resolution and real HTTP/HTTPS requests with actual headers and status codes.
+> - **Mail**: Performs real TCP socket communication using Python's `socket` module against a local test SMTP server (`127.0.0.1:2525`). It does **not** deliver email externally.
+> - **Streaming**: Performs real HTTP requests to retrieve HLS master/rendition playlists and binary MPEG-TS segments.
+> - Every event is explicitly labeled as **`REAL NETWORK EVENT`** or **`SIMULATED EVENT`** (when falling back if the backend or SMTP server is unavailable).
 
 ---
 
-##  Architecture
+## Architecture
+
+The system maintains a strict separation of concerns across a dual-panel interface:
 
 ```
-src/
-├── main.jsx                          # Entry point
-├── App.jsx                           # Root component (SessionProvider wrapper)
-├── context/
-│   └── SessionContext.jsx            # Shared state — the dual-panel sync mechanism
-├── hooks/
-│   └── usePlayback.js                # setInterval-based step progression engine
-├── protocols/                        # Pure JS modules — zero React dependencies
-│   ├── dns.js                        # DNS A query/response simulation
-│   ├── http.js                       # HTTP request/response with keep-alive sub-resources
-│   ├── smtp.js                       # Full SMTP conversation (220→EHLO→MAIL→RCPT→DATA→QUIT)
-│   ├── streaming.js                  # HLS adaptive streaming (master→variant→segments)
-│   └── sequenceBuilders.js           # Composes DNS + protocol per activity type
-├── components/
-│   ├── layout/
-│   │   └── DashboardLayout.jsx       # CSS Grid two-column layout
-│   ├── activity/
-│   │   ├── ActivityPanel.jsx         # Left panel container
-│   │   ├── ActivityTabs.jsx          # Browsing / Mail / Streaming tab switcher
-│   │   ├── BrowsingForm.jsx          # URL input → triggers DNS + HTTP sequence
-│   │   ├── MailForm.jsx              # To/Subject/Body → triggers DNS + SMTP sequence
-│   │   ├── StreamingPlayer.jsx       # Quality selector → triggers DNS + HLS sequence
-│   │   └── ActivityLog.jsx           # Scrolling timestamped activity history
-│   └── protocol/
-│       ├── ProtocolPanel.jsx         # Right panel container
-│       ├── Timeline.jsx             # Progressive step-by-step protocol reveal
-│       ├── MessageCard.jsx          # Expandable raw message + key field chips
-│       └── PlaybackControls.jsx     # Transport buttons + speed selector
-└── styles/
-    └── index.css                     # Complete design system (750+ lines)
+Browser (React + Vite, Port 5173)
+  ├── LEFT PANEL:  Activity Panel (Browsing, Mail, Streaming forms + Activity Log)
+  └── RIGHT PANEL: Protocol Inspector (Timeline, Playback controls, Message details)
+         ↕ (Server-Sent Events / SSE at /api/...)
+FastAPI Backend (Python 3.10+, Port 8000)
+  ├── /api/browse/stream  ─── Real DNS query via dnspython + Real HTTP/HTTPS via httpx
+  ├── /api/mail/send     ─── Real TCP socket (RFC 5321) to 127.0.0.1:2525
+  ├── /api/stream/start  ─── Real HTTP requests fetching HLS master, variant & segments
+  └── /api/stream/media/ ─── HLS media endpoints serving real playlists and TS chunks
+         ↕
+Local SMTP Test Server (Python AsyncIO, Port 2525)
+  └── Safe RFC 5321 test server — logs all commands, sends real SMTP replies, never delivers externally
 ```
-
-### How the Dual-Panel Sync Works
-
-Both panels read from a single `SessionContext` powered by `useReducer`:
-
-1. User submits a form on the **Activity Panel** (left)
-2. A **pure sequence builder function** returns an array of `Step` objects — no side effects, fully synchronous
-3. Steps are dispatched into context (`SET_STEPS`), resetting playback
-4. A **`usePlayback` hook** runs `setInterval` to increment `currentStepIndex`
-5. The **Protocol Panel** (right) renders only steps where `index ≤ currentStepIndex`
-6. Both panels re-render from the same state change — **sync is automatic**
-
-No WebSockets, no events, no polling. Just React's built-in re-rendering.
 
 ---
 
-##  Getting Started
+## Prerequisites
 
-### Prerequisites
+- **Python**: 3.10 or higher
+- **Node.js**: 18 or higher
+- **npm**: 9 or higher
 
-- [Node.js](https://nodejs.org/) v18 or higher
-- npm v9 or higher
+---
 
-### Installation
+## Quick Start Guide
 
+### 1. Install Dependencies
+
+#### Python Backend Dependencies:
 ```bash
-# Clone the repository
-git clone https://github.com/itzsubham2006/Protocol-Visualizer.git
-cd Protocol-Visualizer
+pip install -r requirements.txt
+```
+*(Dependencies: `fastapi`, `uvicorn`, `httpx`, `dnspython`)*
 
-# Install dependencies
+#### Frontend Dependencies:
+```bash
 npm install
+```
 
-# Start the development server
+---
+
+### 2. Start the Local SMTP Test Server
+
+In your first terminal, start the safe local SMTP test server:
+```bash
+python backend/smtp_server.py
+```
+Output:
+```
+============================================================
+  Protocol Visualizer — Local SMTP Test Server
+  Listening on 127.0.0.1:2525
+  This server does NOT deliver emails externally.
+  Press Ctrl+C to stop.
+============================================================
+```
+
+---
+
+### 3. Start the FastAPI Backend Server
+
+In your second terminal, start the FastAPI backend:
+```bash
+python -m backend.main
+```
+Or with uvicorn directly:
+```bash
+uvicorn backend.main:app --port 8000 --reload
+```
+The backend will be live at `http://127.0.0.1:8000`.
+
+---
+
+### 4. Start the Frontend Development Server
+
+In your third terminal, start Vite:
+```bash
 npm run dev
 ```
+Open `http://localhost:5173` in your browser.
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+The top navbar will show:
+- **`REAL NETWORK MODE`** (green badge)
+- **`Protocol communication uses real network requests/sockets.`**
 
-### Build for Production
+*(If the backend is not running, the application automatically shows `SIMULATION FALLBACK` and falls back gracefully).*
 
+---
+
+## How to Test Each Protocol Activity
+
+### 🌐 A. Browsing (Real DNS + Real HTTP)
+1. Select the **Browsing** tab on the Left Panel.
+2. Enter any valid target URL (e.g. `https://example.com` or `https://httpbin.org/get`).
+3. Click **Visit Page →**.
+4. Observe the Right Panel:
+   - **DNS Query & Response**: Actual resolved IP address, actual query time in milliseconds, transaction ID, and TTL.
+   - **HTTP Request & Response**: Real HTTP method, headers, response status code (e.g. `200 OK`), server name, and snippet of response body.
+   - For HTTPS URLs, transport is tagged as `HTTPS/TLS (Encrypted)` without fabricating fake handshake packets.
+   - If an invalid domain is entered, the real DNS error is displayed.
+
+### ✉️ B. Mail (Real TCP SMTP Socket)
+1. Select the **Mail** tab on the Left Panel.
+2. Enter recipient (e.g. `u24cse1034@cit.ac.in`), subject, and message body.
+3. Click **Send Email →**.
+4. Observe the conversation over the real TCP connection (`127.0.0.1:2525`):
+   - `220 Server greeting`
+   - `EHLO client.local`
+   - `250 EHLO capabilities`
+   - `MAIL FROM:<sender@protocol-visualizer.local>`
+   - `250 Sender accepted`
+   - `RCPT TO:<u24cse1034@cit.ac.in>`
+   - `250 Recipient accepted`
+   - `DATA`
+   - `354 Ready for message`
+   - `[Message: "..."]` (Contains your exact recipient, subject, and body)
+   - `250 Message accepted (queue ID)`
+   - `QUIT`
+   - `221 Connection closing`
+5. Activity log records:
+   - `"SMTP connection established"`
+   - `"SMTP conversation completed"` *(never falsely claims "Email delivered")*
+6. **Error Case**: Stop the SMTP server (`Ctrl+C` in Terminal 1) and click Send Email again. The visualizer clearly shows:
+   `Cannot connect to SMTP test server at 127.0.0.1:2525` with instructions to start it.
+
+### 📺 C. Streaming (Real HTTP HLS Chunks)
+1. Select the **Streaming** tab on the Left Panel.
+2. Choose a stream quality (`360p`, `720p`, `1080p`) and segment count (3, 6, or 10).
+3. Click **Start Stream →**.
+4. The backend and frontend execute real HTTP requests:
+   - Real GET to `/api/stream/media/master.m3u8`
+   - Real GET to `/api/stream/media/{quality}/playlist.m3u8`
+   - Real GET requests for each individual segment (`segment0.ts`, `segment1.ts`, etc.)
+   - Real HTTP `200 OK` status codes, `video/mp2t` content-types, and byte sizes.
+
+---
+
+## Running Automated Tests
+
+Run the backend test suite:
 ```bash
-npm run build
-npm run preview
+python -m pytest -v -s tests/
+```
+
+This verifies:
+- Real DNS resolution against live public hosts and error handling
+- Direct IP literal bypass
+- Real HTTP GET requests with actual headers and content
+- Real TCP SMTP socket conversation with RFC 5321 server
+- Connection refused error handling
+- HLS media generation and TS packet structure
+- FastAPI SSE and media endpoints
+
+---
+
+## Project Structure
+
+```
+Protocol-Visualizer/
+├── backend/
+│   ├── main.py                     # FastAPI application & SSE endpoints
+│   ├── smtp_server.py              # Safe local RFC 5321 SMTP test server
+│   └── networking/
+│       ├── dns_client.py           # Real DNS resolution via dnspython + socket fallback
+│       ├── http_client.py          # Real HTTP/HTTPS requests via httpx
+│       ├── smtp_client.py          # Real raw TCP socket SMTP conversation
+│       ├── stream_service.py       # Real HLS playlist & TS segment generation/fetching
+│       └── events.py               # ProtocolEvent model & SSE stream formatters
+├── src/
+│   ├── App.jsx                     # Top navbar with real network mode status badge
+│   ├── context/
+│   │   └── SessionContext.jsx      # Dual-panel synchronization with SSE streaming support
+│   ├── hooks/
+│   │   └── usePlayback.js          # Interactive playback engine (Play/Pause/Step/Replay/Speed)
+│   ├── components/
+│   │   ├── layout/
+│   │   │   └── DashboardLayout.jsx # Exactly two main panels (Left Activity, Right Inspector)
+│   │   ├── activity/
+│   │   │   ├── ActivityPanel.jsx   # Left panel container
+│   │   │   ├── ActivityTabs.jsx    # Browsing / Mail / Streaming switcher
+│   │   │   ├── BrowsingForm.jsx    # Real DNS/HTTP visit form with SSE
+│   │   │   ├── MailForm.jsx        # Real TCP SMTP email form with SSE
+│   │   │   ├── StreamingPlayer.jsx # Real HLS streaming player with SSE
+│   │   │   └── ActivityLog.jsx     # Timestamped real network activity log
+│   │   └── protocol/
+│   │       ├── ProtocolPanel.jsx   # Right panel container
+│   │       ├── Timeline.jsx        # Step sequence with REAL vs SIM tags
+│   │       ├── MessageCard.jsx     # Message inspector with REAL NETWORK EVENT badge
+│   │       └── PlaybackControls.jsx# Transport controls & speed selector
+│   └── styles/
+│       └── index.css               # Professional dark neutral theme
+├── tests/
+│   ├── test_backend.py             # Networking integration tests
+│   └── test_api.py                 # FastAPI endpoints tests
+├── package.json
+├── requirements.txt
+├── vite.config.js                  # Proxy configuration (/api -> localhost:8000)
+└── README.md
 ```
 
 ---
 
-##  Usage Guide
+## License
 
-###  Browsing Mode
-
-1. Select the **Browsing** tab
-2. Enter a URL (default: `https://example.com`)
-3. Click **"Visit Page"**
-4. Watch the right panel animate: **DNS query → DNS response → HTTP GET → 200 OK → CSS/JS/image sub-resources**
-
-###  Mail Mode
-
-1. Select the **Mail** tab
-2. Fill in recipient, subject, and body (pre-filled with defaults)
-3. Click **"Send Email"**
-4. Watch the full SMTP conversation: **220 greeting → EHLO → MAIL FROM → RCPT TO → DATA → 354 → message → 250 queued → QUIT → 221 Bye**
-
-###  Streaming Mode
-
-1. Select the **Streaming** tab
-2. Choose quality (360p / 720p / 1080p) and segment count
-3. Click **"Start Stream"**
-4. Watch HLS adaptive streaming: **DNS → master.m3u8 → variant playlist → repeated segment fetches**
-
-### Playback Controls
-
-| Control | Action |
-|---------|--------|
-| ▶ / ⏸ | Play / Pause (or `Space`) |
-| ⏮ | Step backward (or `←`) |
-| ⏭ | Step forward (or `→`) |
-| 🔄 | Replay from beginning (or `R`) |
-| 0.5x–4x | Adjust playback speed |
-
-Click any **timeline step** to expand its message card showing raw protocol text and highlighted key fields.
-
----
-
-##  Design
-
-- **Theme**: Dark cyberpunk with glassmorphism cards
-- **Protocol Colors**:
-  - 🟦 DNS — Cyan (`hsl(190, 90%, 60%)`)
-  - 🟩 HTTP — Green (`hsl(145, 80%, 55%)`)
-  - 🟨 SMTP — Amber (`hsl(40, 95%, 60%)`)
-  - 🟪 Streaming — Magenta (`hsl(280, 80%, 65%)`)
-- **Typography**: Inter (UI) + JetBrains Mono (protocol text)
-- **Responsive**: CSS Grid, stacks to single column below 768px
-
----
-
-##  Protocol Accuracy
-
-All protocol simulations follow their respective RFCs:
-
-| Protocol | Reference | Key Details |
-|----------|-----------|-------------|
-| DNS | RFC 1035 | A record query/response, recursion desired flag, TTL, NOERROR rcode |
-| HTTP/1.1 | RFC 9110 | Proper headers (Host, User-Agent, Content-Type, Connection: keep-alive), sub-resource reuse |
-| SMTP | RFC 5321 | Complete 13-step conversation with correct status codes (220, 250, 354, 221) |
-| HLS | RFC 8216 | Master playlist → variant playlist → MPEG-TS segment fetches, adaptive bitrate metadata |
-
----
-
-##  Tech Stack
-
-| Technology | Purpose |
-|-----------|---------|
-| **React 19** | UI framework |
-| **Vite 8** | Build tool & dev server |
-| **CSS Custom Properties** | Design system & theming |
-| **React Context + useReducer** | State management & panel synchronization |
-| **Pure JS Modules** | Protocol simulation (no framework dependency) |
-
----
-
-##  License
-
-This project is licensed under the MIT License.
+MIT License

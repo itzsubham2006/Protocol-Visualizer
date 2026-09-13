@@ -18,10 +18,44 @@ const initialState = {
   isPlaying: false,
   playbackSpeed: 1,         // 0.5 | 1 | 2 | 4
   selectedStepId: null,     // ID of the step whose MessageCard is expanded
+  isRealNetwork: false,     // whether backend is available
+  isStreaming: false,       // whether events are currently being streamed via SSE
+  realTimeEnabled: true,    // user toggle for Real-Time vs Simulation mode
 };
 
 function sessionReducer(state, action) {
   switch (action.type) {
+    case 'SET_REAL_TIME_MODE':
+      return { ...state, realTimeEnabled: action.value };
+
+    case 'SET_REAL_NETWORK':
+      return { ...state, isRealNetwork: action.value };
+      
+    case 'APPEND_STEP':
+      return {
+        ...state,
+        steps: [...state.steps, action.step],
+        // If nothing revealed yet and playing, reveal first step immediately
+        currentStepIndex: state.currentStepIndex === -1 ? 0 : state.currentStepIndex,
+      };
+
+    case 'START_STREAMING_ACTIVITY':
+      return {
+        ...state,
+        activityType: action.activityType,
+        steps: [],
+        currentStepIndex: -1,
+        isPlaying: true,
+        isStreaming: true,
+        selectedStepId: null,
+      };
+
+    case 'FINISH_STREAMING':
+      return {
+        ...state,
+        isStreaming: false,
+      };
+
     case 'SET_STEPS':
       return {
         ...state,

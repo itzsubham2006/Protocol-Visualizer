@@ -15,6 +15,9 @@ export default function MessageCard({ step }) {
             {step.protocol}
           </span>
           <span>{step.summary}</span>
+          <span className={`event-source-badge ${step.status === 'real' ? 'real' : 'simulated'}`}>
+            {step.status === 'real' ? 'REAL NETWORK EVENT' : 'SIMULATED EVENT'}
+          </span>
         </div>
         <span className={`message-card-toggle ${isExpanded ? 'expanded' : ''}`}>
           ▼

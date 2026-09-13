@@ -63,6 +63,9 @@ export default function Timeline({ steps, currentStepIndex, selectedStepId }) {
               <span className="step-timing">
                 +{step.offsetMs}ms
               </span>
+              <span className={`event-source-tag ${step.status === 'real' ? 'real' : 'simulated'}`}>
+                {step.status === 'real' ? 'REAL' : 'SIM'}
+              </span>
             </div>
             <div className="step-summary">
               {step.summary}

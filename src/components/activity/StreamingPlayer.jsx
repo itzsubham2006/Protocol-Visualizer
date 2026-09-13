@@ -5,15 +5,59 @@ import { buildStreamingSequence } from '../../protocols/sequenceBuilders';
 export default function StreamingPlayer() {
   const [quality, setQuality] = useState('720p');
   const [segmentCount, setSegmentCount] = useState(6);
-  const { startActivity, isPlaying, steps, currentStepIndex } = useSession();
+  const { startActivity, isPlaying, steps, currentStepIndex, dispatch, realTimeEnabled } = useSession();
 
   const handleStartStream = () => {
-    const seqSteps = buildStreamingSequence(quality, segmentCount);
-    startActivity('streaming', seqSteps, `Streaming video at ${quality} (${segmentCount} segments)`);
+    // If Real-Time is disabled, run pure offline simulation
+    if (!realTimeEnabled) {
+      const seqSteps = buildStreamingSequence(quality, segmentCount).map(s => ({ ...s, status: 'simulated' }));
+      startActivity('streaming', seqSteps, `[Offline Simulation] Streaming video at ${quality} (${segmentCount} segments)`);
+      return;
+    }
+
+    // Real network mode via backend SSE
+    try {
+      dispatch({ type: 'START_STREAMING_ACTIVITY', activityType: 'streaming' });
+      dispatch({ type: 'ADD_LOG', message: `[Real Network] Streaming video at ${quality} (${segmentCount} segments)`, logType: 'streaming' });
+
+      const params = new URLSearchParams({
+        quality,
+        segments: String(segmentCount),
+      });
+      const eventSource = new EventSource(`/api/stream/start?${params.toString()}`);
+
+      eventSource.onmessage = (event) => {
+        if (event.data === '[DONE]') {
+          eventSource.close();
+          dispatch({ type: 'FINISH_STREAMING' });
+          dispatch({ type: 'ADD_LOG', message: 'Streaming session completed (real network)', logType: 'streaming' });
+          return;
+        }
+        try {
+          const step = JSON.parse(event.data);
+          dispatch({ type: 'APPEND_STEP', step });
+        } catch (err) {
+          console.error('Failed to parse SSE event:', err);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        dispatch({ type: 'FINISH_STREAMING' });
+        // Fall back to simulation
+        dispatch({ type: 'ADD_LOG', message: 'Backend unavailable — using simulation fallback', logType: 'streaming' });
+        const seqSteps = buildStreamingSequence(quality, segmentCount).map(s => ({ ...s, status: 'simulated' }));
+        startActivity('streaming', seqSteps, `Streaming video at ${quality} (${segmentCount} segments) (simulated fallback)`);
+      };
+    } catch {
+      // Fall back to simulation
+      const seqSteps = buildStreamingSequence(quality, segmentCount).map(s => ({ ...s, status: 'simulated' }));
+      startActivity('streaming', seqSteps, `Streaming video at ${quality} (${segmentCount} segments) (simulated fallback)`);
+    }
   };
 
   const totalSegments = segmentCount;
-  const segmentSteps = steps.filter(s => s.id && s.id.includes('-seg-res-'));
+  const segmentSteps = steps.filter(s => s.id && (s.id.includes('-seg-res-') || s.id.includes('segment')));
   const visibleSegments = segmentSteps.filter(
     (_, i) => steps.indexOf(segmentSteps[i]) <= currentStepIndex
   ).length;
@@ -63,7 +107,13 @@ export default function StreamingPlayer() {
         id="stream-submit"
         onClick={handleStartStream}
       >
-        <span>{isPlaying ? 'Restart Stream' : 'Start Stream →'}</span>
+        <span>
+          {isPlaying
+            ? 'Restart Stream'
+            : realTimeEnabled
+            ? 'Start Stream (Real HTTP) →'
+            : 'Simulate Stream (Offline) →'}
+        </span>
       </button>
     </div>
   );

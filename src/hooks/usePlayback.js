@@ -18,6 +18,7 @@ export function usePlayback() {
     currentStepIndex,
     steps,
     dispatch,
+    isStreaming,
   } = useSession();
 
   const intervalRef = useRef(null);
@@ -45,12 +46,12 @@ export function usePlayback() {
     return clearPlayback;
   }, [isPlaying, playbackSpeed, steps.length, clearPlayback, dispatch]);
 
-  // Auto-pause when we reach the end
+  // Auto-pause when we reach the end and streaming is complete
   useEffect(() => {
-    if (currentStepIndex >= steps.length - 1 && isPlaying && steps.length > 0) {
+    if (currentStepIndex >= steps.length - 1 && isPlaying && steps.length > 0 && !isStreaming) {
       dispatch({ type: 'SET_PLAYING', isPlaying: false });
     }
-  }, [currentStepIndex, steps.length, isPlaying, dispatch]);
+  }, [currentStepIndex, steps.length, isPlaying, isStreaming, dispatch]);
 
   // Public control functions
   const play = useCallback(() => {
