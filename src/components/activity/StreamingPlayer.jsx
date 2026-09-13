@@ -9,10 +9,9 @@ export default function StreamingPlayer() {
 
   const handleStartStream = () => {
     const seqSteps = buildStreamingSequence(quality, segmentCount);
-    startActivity('streaming', seqSteps, `📺 Streaming video at ${quality} (${segmentCount} segments)`);
+    startActivity('streaming', seqSteps, `Streaming video at ${quality} (${segmentCount} segments)`);
   };
 
-  // Calculate progress for the mock player
   const totalSegments = segmentCount;
   const segmentSteps = steps.filter(s => s.id && s.id.includes('-seg-res-'));
   const visibleSegments = segmentSteps.filter(
@@ -24,35 +23,13 @@ export default function StreamingPlayer() {
 
   return (
     <div className="streaming-player" id="streaming-player">
-      {/* Mock video area */}
-      <div className="streaming-video-area">
-        <div className="streaming-video-icon">📺</div>
-        {isPlaying && steps.length > 0 && (
-          <div style={{
-            position: 'absolute',
-            bottom: '12px',
-            left: '12px',
-            right: '12px',
-          }}>
-            <div className="streaming-progress">
-              <div
-                className="streaming-progress-bar"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Quality selector */}
-      <div className="streaming-quality">
-        <label className="form-label" htmlFor="stream-quality">Quality</label>
+      <div className="form-group">
+        <label className="form-label" htmlFor="stream-quality">Stream Quality</label>
         <select
           id="stream-quality"
           className="form-select"
           value={quality}
           onChange={(e) => setQuality(e.target.value)}
-          style={{ flex: 1 }}
         >
           <option value="360p">360p (800 Kbps)</option>
           <option value="720p">720p (2.8 Mbps)</option>
@@ -60,15 +37,13 @@ export default function StreamingPlayer() {
         </select>
       </div>
 
-      {/* Segment count */}
-      <div className="streaming-quality">
+      <div className="form-group">
         <label className="form-label" htmlFor="stream-segments">Segments</label>
         <select
           id="stream-segments"
           className="form-select"
           value={segmentCount}
           onChange={(e) => setSegmentCount(Number(e.target.value))}
-          style={{ flex: 1 }}
         >
           <option value={3}>3 segments (~18s)</option>
           <option value={6}>6 segments (~36s)</option>
@@ -76,21 +51,19 @@ export default function StreamingPlayer() {
         </select>
       </div>
 
-      {/* Segment info */}
       {steps.length > 0 && (
-        <div className="streaming-segment-info">
-          Segment {visibleSegments} / {totalSegments} loaded
+        <div style={{ fontSize: '11px', color: 'var(--text-subtle)', fontFamily: 'var(--font-mono)', marginBottom: '12px' }}>
+          Loaded {visibleSegments} of {totalSegments} segments ({Math.round(progress)}%)
         </div>
       )}
 
       <button
         type="button"
-        className="btn btn-stream btn-full"
+        className="btn-primary-action"
         id="stream-submit"
         onClick={handleStartStream}
       >
-        <span>▶</span>
-        <span>{isPlaying ? 'Restart Stream' : 'Start Stream'}</span>
+        <span>{isPlaying ? 'Restart Stream' : 'Start Stream →'}</span>
       </button>
     </div>
   );

@@ -15,7 +15,7 @@ export default function ActivityLog() {
   return (
     <div className="activity-log" id="activity-log">
       <div className="activity-log-header">
-        <span className="activity-log-title">Activity Log</span>
+        <span className="activity-log-title">ACTIVITY LOG</span>
         {activityLog.length > 0 && (
           <button
             className="activity-log-clear"
@@ -27,16 +27,14 @@ export default function ActivityLog() {
       </div>
 
       {activityLog.length === 0 ? (
-        <p className="activity-log-empty">
-          No activity yet. Choose an activity above to begin.
-        </p>
+        <div className="activity-log-empty">
+          <p className="primary-msg">No activity logged yet</p>
+          <p className="sub-msg">Choose an activity above to initiate real-time packet inspection.</p>
+        </div>
       ) : (
         <ul className="activity-log-list" ref={listRef}>
           {activityLog.map((entry) => (
-            <li
-              key={entry.id}
-              className={`log-entry type-${entry.type}`}
-            >
+            <li key={entry.id} className="log-entry">
               <span className="log-entry-time">{entry.timestamp}</span>
               <span className="log-entry-message">{entry.message}</span>
             </li>

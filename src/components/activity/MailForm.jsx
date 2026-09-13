@@ -17,13 +17,13 @@ export default function MailForm() {
       subject: subject.trim(),
       body: body.trim(),
     });
-    startActivity('mail', steps, `✉️ Sending email to ${to.trim()}`);
+    startActivity('mail', steps, `Sending email to ${to.trim()}`);
   };
 
   return (
     <form onSubmit={handleSubmit} id="mail-form">
       <div className="form-group">
-        <label className="form-label" htmlFor="mail-to">To</label>
+        <label className="form-label" htmlFor="mail-to">Recipient Address</label>
         <input
           type="email"
           id="mail-to"
@@ -45,24 +45,23 @@ export default function MailForm() {
         />
       </div>
       <div className="form-group">
-        <label className="form-label" htmlFor="mail-body">Body</label>
+        <label className="form-label" htmlFor="mail-body">Message Body</label>
         <textarea
           id="mail-body"
           className="form-textarea"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="Write your message..."
-          rows={4}
+          rows={3}
         />
       </div>
       <button
         type="submit"
-        className="btn btn-mail btn-full"
+        className="btn-primary-action"
         id="mail-submit"
         disabled={!to.trim() || !subject.trim()}
       >
-        <span>✉️</span>
-        <span>{isPlaying ? 'Restart Send' : 'Send Email'}</span>
+        <span>{isPlaying ? 'Restart Send' : 'Send Email →'}</span>
       </button>
     </form>
   );

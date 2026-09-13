@@ -11,13 +11,13 @@ export default function BrowsingForm() {
     if (!url.trim()) return;
 
     const steps = buildBrowsingSequence(url.trim());
-    startActivity('browsing', steps, `🌐 Visiting ${url.trim()}`);
+    startActivity('browsing', steps, `Visiting ${url.trim()}`);
   };
 
   return (
     <form onSubmit={handleSubmit} id="browsing-form">
       <div className="form-group">
-        <label className="form-label" htmlFor="browse-url">URL</label>
+        <label className="form-label" htmlFor="browse-url">Target Endpoint URL</label>
         <input
           type="text"
           id="browse-url"
@@ -30,12 +30,11 @@ export default function BrowsingForm() {
       </div>
       <button
         type="submit"
-        className="btn btn-browsing btn-full"
+        className="btn-primary-action"
         id="browse-submit"
         disabled={!url.trim()}
       >
-        <span>🌐</span>
-        <span>{isPlaying ? 'Restart Visit' : 'Visit Page'}</span>
+        <span>{isPlaying ? 'Restart Visit' : 'Visit Page →'}</span>
       </button>
     </form>
   );
