@@ -68,18 +68,25 @@ async def browse_stream(url: str):
         parsed = urlparse(normalized_url)
         hostname = parsed.hostname or normalized_url
 
-        # Real DNS resolution
+        # 1. Real DNS resolution
         dns_events = await resolve_dns(hostname)
+        resolved_ip = None
         for ev in dns_events:
+            for kf in ev.get("keyFields", []):
+                if kf.get("label") == "Resolved IP":
+                    resolved_ip = kf.get("value")
             yield event_to_sse(ev)
+            await asyncio.sleep(0.01)
 
         last_dns_offset = dns_events[-1]["offsetMs"] if dns_events else 0
 
-        # Real HTTP request
-        http_events = await perform_http_request(normalized_url)
-        for ev in http_events:
-            ev["offsetMs"] += last_dns_offset + 15
+        # 2, 3, 4, 5. Real TCP connect -> TLS handshake -> HTTP request -> HTTP response
+        from backend.networking.http_client import perform_full_browse_pipeline
+        pipeline_events = await perform_full_browse_pipeline(normalized_url, pre_resolved_ip=resolved_ip)
+        for ev in pipeline_events:
+            ev["offsetMs"] += last_dns_offset + 20
             yield event_to_sse(ev)
+            await asyncio.sleep(0.01)
 
         yield done_sse()
 
@@ -124,6 +131,7 @@ async def mail_send(
         )
         for ev in events:
             yield event_to_sse(ev)
+            await asyncio.sleep(0.01)
         yield done_sse()
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
@@ -135,6 +143,7 @@ async def stream_start(request: Request, quality: str = "720p", segments: int = 
         events = await perform_streaming_session(quality, segments, base_url)
         for ev in events:
             yield event_to_sse(ev)
+            await asyncio.sleep(0.01)
         yield done_sse()
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

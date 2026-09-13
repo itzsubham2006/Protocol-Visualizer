@@ -55,23 +55,19 @@ def test_dns_resolution_error():
     print("DNS error handling test passed!")
 
 def test_http_request_real_url():
-    print("\n--- Testing Real HTTP Request (https://example.com) ---")
+    print("\n--- Testing Real Full Browsing Pipeline (https://example.com) ---")
     events = asyncio.run(perform_http_request("https://example.com"))
-    assert len(events) >= 2, f"Expected at least 2 HTTP events, got {len(events)}"
+    assert len(events) >= 4, f"Expected at least 4 pipeline events (TCP, TLS, HTTP), got {len(events)}"
 
-    req = events[0]
-    assert req["protocol"] == "HTTP"
-    assert req["direction"] == "client→server"
-    assert req["status"] == "real"
+    protocols = [e["protocol"] for e in events]
+    assert "TCP" in protocols, "Missing TCP handshake event"
+    assert "TLS" in protocols, "Missing TLS handshake event"
+    assert "HTTP" in protocols, "Missing HTTP event"
 
-    resp = events[1]
-    assert resp["protocol"] == "HTTP"
-    assert resp["direction"] == "server→client"
-    assert resp["status"] == "real"
-    assert "200" in resp["summary"]
-    print(f"HTTP request: {req['summary']}")
-    print(f"HTTP response: {resp['summary']}")
-    print("HTTP request test passed!")
+    http_resp = next(e for e in events if e["protocol"] == "HTTP" and e["direction"] == "server→client")
+    assert "200" in http_resp["summary"]
+    assert all(e["status"] == "real" for e in events)
+    print("Full browsing pipeline test passed!")
 
 def test_smtp_conversation_with_local_server():
     print("\n--- Testing SMTP TCP Conversation with Local Server ---")

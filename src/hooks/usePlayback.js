@@ -31,11 +31,13 @@ export function usePlayback() {
     }
   }, []);
 
+  const hasSteps = steps.length > 0;
+
   // Run playback
   useEffect(() => {
     clearPlayback();
 
-    if (isPlaying && steps.length > 0) {
+    if (isPlaying && hasSteps) {
       const intervalMs = BASE_INTERVAL / playbackSpeed;
 
       intervalRef.current = setInterval(() => {
@@ -44,7 +46,7 @@ export function usePlayback() {
     }
 
     return clearPlayback;
-  }, [isPlaying, playbackSpeed, steps.length, clearPlayback, dispatch]);
+  }, [isPlaying, playbackSpeed, hasSteps, clearPlayback, dispatch]);
 
   // Auto-pause when we reach the end and streaming is complete
   useEffect(() => {

@@ -31,13 +31,17 @@ function sessionReducer(state, action) {
     case 'SET_REAL_NETWORK':
       return { ...state, isRealNetwork: action.value };
       
-    case 'APPEND_STEP':
+    case 'APPEND_STEP': {
+      const isFirst = state.currentStepIndex === -1;
       return {
         ...state,
         steps: [...state.steps, action.step],
-        // If nothing revealed yet and playing, reveal first step immediately
-        currentStepIndex: state.currentStepIndex === -1 ? 0 : state.currentStepIndex,
+        // If nothing revealed yet, reveal first step immediately
+        currentStepIndex: isFirst ? 0 : state.currentStepIndex,
+        // While streaming, always keep playback active so upcoming events are revealed
+        isPlaying: state.isStreaming ? true : state.isPlaying,
       };
+    }
 
     case 'START_STREAMING_ACTIVITY':
       return {
@@ -50,11 +54,15 @@ function sessionReducer(state, action) {
         selectedStepId: null,
       };
 
-    case 'FINISH_STREAMING':
+    case 'FINISH_STREAMING': {
+      const isAtEnd = state.currentStepIndex >= state.steps.length - 1;
       return {
         ...state,
         isStreaming: false,
+        // If playback hasn't revealed all steps yet, keep playing; only pause if already at end
+        isPlaying: isAtEnd ? false : state.isPlaying,
       };
+    }
 
     case 'SET_STEPS':
       return {
@@ -74,10 +82,13 @@ function sessionReducer(state, action) {
 
     case 'STEP_FORWARD': {
       const nextIndex = Math.min(state.currentStepIndex + 1, state.steps.length - 1);
+      const isAtEnd = nextIndex >= state.steps.length - 1;
+      // If we are actively streaming, keep isPlaying true even if caught up with received packets
+      const keepPlaying = state.isStreaming ? true : (isAtEnd ? false : state.isPlaying);
       return {
         ...state,
         currentStepIndex: nextIndex,
-        isPlaying: nextIndex < state.steps.length - 1 ? state.isPlaying : false,
+        isPlaying: keepPlaying,
       };
     }
 
