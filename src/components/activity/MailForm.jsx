@@ -3,7 +3,7 @@ import { useSession } from '../../context/SessionContext';
 import { buildMailSequence } from '../../protocols/sequenceBuilders';
 
 export default function MailForm() {
-  const [to, setTo] = useState('u24cse1034@cit.ac.in');
+  const [to, setTo] = useState('');
   const [subject, setSubject] = useState('Hello from Protocol Visualizer');
   const [body, setBody] = useState('This is a real email sent over TCP socket with STARTTLS and SMTP protocol flow.\n\nBest regards,\nProtocol Visualizer');
   const [smtpConfig, setSmtpConfig] = useState(null);

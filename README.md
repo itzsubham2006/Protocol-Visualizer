@@ -120,7 +120,7 @@ The top navbar will show:
 
 ### ✉️ B. Mail (Real TCP SMTP Socket)
 1. Select the **Mail** tab on the Left Panel.
-2. Enter recipient (e.g. `u24cse1034@cit.ac.in`), subject, and message body.
+2. Enter recipient (e.g. `user@example.com`), subject, and message body.
 3. Click **Send Email →**.
 4. Observe the conversation over the real TCP connection (`127.0.0.1:2525`):
    - `220 Server greeting`
@@ -128,7 +128,7 @@ The top navbar will show:
    - `250 EHLO capabilities`
    - `MAIL FROM:<sender@protocol-visualizer.local>`
    - `250 Sender accepted`
-   - `RCPT TO:<u24cse1034@cit.ac.in>`
+   - `RCPT TO:<user@example.com>`
    - `250 Recipient accepted`
    - `DATA`
    - `354 Ready for message`

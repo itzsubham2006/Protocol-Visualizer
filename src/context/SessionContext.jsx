@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components */
 /**
  * SessionContext — the single source of truth for dual-panel sync
  *
