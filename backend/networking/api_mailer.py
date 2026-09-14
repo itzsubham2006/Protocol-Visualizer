@@ -12,6 +12,39 @@ import httpx
 from dataclasses import asdict
 from backend.networking.events import ProtocolEvent
 
+import email.utils
+
+def sanitize_sender_for_resend(from_email_str: str) -> tuple[str, str | None]:
+    """
+    Sanitizes sender for Resend API:
+    1. Formats as 'Name <email@domain.com>' with proper angle brackets.
+    2. For free accounts or public domains (@gmail.com), routes through 'onboarding@resend.dev'
+       and attaches reply_to to ensure delivery without 422/403 validation errors.
+    """
+    resend_from_env = os.getenv("RESEND_FROM", "").strip()
+    raw = resend_from_env or (from_email_str.strip() if from_email_str else "")
+
+    if " " in raw and ("<" not in raw or ">" not in raw):
+        parts = raw.rsplit(None, 1)
+        if len(parts) == 2 and "@" in parts[1]:
+            parsed_name, parsed_addr = parts[0], parts[1].strip("<>")
+        else:
+            parsed_name, parsed_addr = email.utils.parseaddr(raw)
+    else:
+        parsed_name, parsed_addr = email.utils.parseaddr(raw)
+
+    parsed_addr = parsed_addr.strip("<> \t\r\n")
+    display_name = parsed_name.strip() or "Protocol Visualizer"
+    if parsed_addr and "@" in parsed_addr:
+        domain = parsed_addr.split("@")[-1].lower()
+        if resend_from_env:
+            return f"{display_name} <{parsed_addr}>", parsed_addr
+        if domain in ("gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "protocol-visualizer.local"):
+            return f"{display_name} <onboarding@resend.dev>", parsed_addr
+        else:
+            return f"{display_name} <{parsed_addr}>", parsed_addr
+    return "Protocol Visualizer <onboarding@resend.dev>", None
+
 async def perform_api_mail_delivery(
     to: str,
     subject: str,
@@ -50,13 +83,15 @@ async def perform_api_mail_delivery(
     brevo_key = os.getenv("BREVO_API_KEY", "").strip()
 
     if resend_key:
-        sender = from_email.strip() if from_email and from_email.strip() else "Protocol Visualizer <onboarding@resend.dev>"
+        sender, reply_to = sanitize_sender_for_resend(from_email)
         payload = {
             "from": sender,
             "to": [to.strip()],
             "subject": subject.strip(),
             "text": body.strip(),
         }
+        if reply_to:
+            payload["reply_to"] = reply_to
         headers = {
             "Authorization": f"Bearer {resend_key}",
             "Content-Type": "application/json",
