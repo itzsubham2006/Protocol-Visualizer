@@ -70,8 +70,8 @@ def mail_config():
     from_email = os.getenv("SMTP_FROM", "").strip() or user
     is_live = bool(user and has_pass and host not in ("127.0.0.1", "localhost"))
 
-    resend_key = os.getenv("RESEND_API_KEY", "").strip()
-    brevo_key = os.getenv("BREVO_API_KEY", "").strip()
+    resend_key = os.getenv("RESEND_API_KEY", "").strip().strip('"\'')
+    brevo_key = os.getenv("BREVO_API_KEY", "").strip().strip('"\'')
     has_api = bool(resend_key or brevo_key)
     api_provider = "Resend (HTTPS)" if resend_key else ("Brevo (HTTPS)" if brevo_key else None)
 

@@ -79,9 +79,9 @@ async def perform_api_mail_delivery(
         events.append(asdict(evt))
         step_counter += 1
 
-    raw_api_key = (api_key or "").strip()
-    resend_env = os.getenv("RESEND_API_KEY", "").strip()
-    brevo_env = os.getenv("BREVO_API_KEY", "").strip()
+    raw_api_key = (api_key or "").strip().strip('"\'')
+    resend_env = os.getenv("RESEND_API_KEY", "").strip().strip('"\'')
+    brevo_env = os.getenv("BREVO_API_KEY", "").strip().strip('"\'')
 
     resend_key = ""
     brevo_key = ""

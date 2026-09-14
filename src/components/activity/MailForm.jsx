@@ -224,12 +224,12 @@ export default function MailForm() {
                     type="password"
                     className="form-input"
                     style={{ height: '32px', fontSize: '11px', background: '#0a0a0c' }}
-                    placeholder="Enter Resend API Key (re_...) or set RESEND_API_KEY in Railway Variables"
+                    placeholder="Enter Resend (re_...) or Brevo (xkeysib-...) API key"
                     value={resendApiKey}
                     onChange={(e) => setResendApiKey(e.target.value)}
                   />
                   <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '4px' }}>
-                    Free API key available in 30s at <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)' }}>resend.com</a> (3,000 free emails/month).
+                    Free API key available at <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)' }}>resend.com</a> (recommended) or <a href="https://brevo.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)' }}>brevo.com</a>.
                   </div>
                 </div>
               )}
