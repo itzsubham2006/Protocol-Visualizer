@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { usePlayback } from '../../hooks/usePlayback';
 import PlaybackControls from './PlaybackControls';
@@ -7,6 +8,7 @@ import MessageCard from './MessageCard';
 export default function ProtocolPanel() {
   const { steps, currentStepIndex, selectedStepId } = useSession();
   const playback = usePlayback();
+  const [viewMode, setViewMode] = useState('flow');
 
   const selectedStep = selectedStepId
     ? steps.find(s => s.id === selectedStepId)
@@ -24,18 +26,51 @@ export default function ProtocolPanel() {
           </svg>
           <span>Protocol Inspector</span>
         </h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: playback.isPlaying ? '#38bdf8' : '#64748b',
-            }}
-          />
-          <span className="panel-header-badge">
-            {playback.isPlaying ? 'ACTIVE' : playback.hasSteps ? 'PAUSED' : 'IDLE'}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {playback.hasSteps && (
+            <div className="view-toggle-group">
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === 'flow' ? 'active' : ''}`}
+                onClick={() => setViewMode('flow')}
+                title="Flowchart View"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="8" cy="3" r="2" />
+                  <circle cx="8" cy="13" r="2" />
+                  <line x1="8" y1="5" x2="8" y2="11" />
+                </svg>
+                <span>Flow</span>
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                onClick={() => setViewMode('list')}
+                title="Row Table View"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="2" y1="4" x2="14" y2="4" />
+                  <line x1="2" y1="8" x2="14" y2="8" />
+                  <line x1="2" y1="12" x2="14" y2="12" />
+                </svg>
+                <span>Rows</span>
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: playback.isPlaying ? '#38bdf8' : '#64748b',
+              }}
+            />
+            <span className="panel-header-badge">
+              {playback.isPlaying ? 'ACTIVE' : playback.hasSteps ? 'PAUSED' : 'IDLE'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -81,6 +116,7 @@ export default function ProtocolPanel() {
               steps={steps}
               currentStepIndex={currentStepIndex}
               selectedStepId={selectedStepId}
+              viewMode={viewMode}
             />
           </>
         )}
