@@ -16,7 +16,7 @@ import { buildStreamingSteps } from './streaming.js';
  * @param {string} url - The URL to visit
  * @returns {Array<Step>} Complete sequence of steps
  */
-export function buildBrowsingSequence(url) {
+export function buildBrowsingSequence(url, overrideIp = null, allIps = [], ttl = null, server = '8.8.8.8') {
   let parsedUrl;
   try {
     parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
@@ -27,7 +27,7 @@ export function buildBrowsingSequence(url) {
   const hostname = parsedUrl.hostname;
 
   // Phase 1: DNS resolution
-  const dnsSteps = buildDnsSteps(hostname);
+  const dnsSteps = buildDnsSteps(hostname, overrideIp, allIps, ttl, server);
 
   // Phase 2: HTTP requests (offset from DNS completion)
   const httpSteps = buildHttpSteps(url);

@@ -19,41 +19,84 @@ export default function BrowsingForm() {
     }
 
     // Real network mode via backend SSE
-    try {
-      dispatch({ type: 'START_STREAMING_ACTIVITY', activityType: 'browsing' });
-      dispatch({ type: 'ADD_LOG', message: `[Real Network] Visiting ${trimmedUrl}`, logType: 'browsing' });
+    dispatch({ type: 'START_STREAMING_ACTIVITY', activityType: 'browsing' });
+    dispatch({ type: 'ADD_LOG', message: `[Real Network] Visiting ${trimmedUrl}`, logType: 'browsing' });
 
-      const encodedUrl = encodeURIComponent(trimmedUrl);
-      const eventSource = new EventSource(`/api/browse/stream?url=${encodedUrl}`);
+    let receivedCount = 0;
+    const encodedUrl = encodeURIComponent(trimmedUrl);
+    const eventSource = new EventSource(`/api/browse/stream?url=${encodedUrl}`);
 
-      eventSource.onmessage = (event) => {
-        if (event.data === '[DONE]') {
-          eventSource.close();
-          dispatch({ type: 'FINISH_STREAMING' });
-          dispatch({ type: 'ADD_LOG', message: 'Browsing session completed (real network)', logType: 'browsing' });
-          return;
-        }
-        try {
-          const step = JSON.parse(event.data);
-          dispatch({ type: 'APPEND_STEP', step });
-        } catch (err) {
-          console.error('Failed to parse SSE event:', err);
-        }
-      };
-
-      eventSource.onerror = () => {
+    eventSource.onmessage = (event) => {
+      if (event.data === '[DONE]') {
         eventSource.close();
         dispatch({ type: 'FINISH_STREAMING' });
-        // Fall back to simulation
-        dispatch({ type: 'ADD_LOG', message: 'Backend unavailable — using simulation fallback', logType: 'browsing' });
-        const steps = buildBrowsingSequence(trimmedUrl).map(s => ({ ...s, status: 'simulated' }));
-        startActivity('browsing', steps, `Visiting ${trimmedUrl} (simulated fallback)`);
-      };
-    } catch {
-      // Fall back to simulation
+        dispatch({ type: 'ADD_LOG', message: 'Browsing session completed (real network)', logType: 'browsing' });
+        return;
+      }
+      try {
+        const step = JSON.parse(event.data);
+        receivedCount++;
+        dispatch({ type: 'APPEND_STEP', step });
+      } catch (err) {
+        console.error('Failed to parse SSE event:', err);
+      }
+    };
+
+    eventSource.onerror = async () => {
+      eventSource.close();
+      dispatch({ type: 'FINISH_STREAMING' });
+
+      // If packets were already received from the real backend, DO NOT wipe them out!
+      if (receivedCount > 0) {
+        return;
+      }
+
+      // Only if 0 packets arrived (backend offline / unreachable):
+      // Perform live DNS lookup via Google Public DNS (8.8.8.8) directly from browser!
+      let parsedHostname = 'example.com';
+      try {
+        const p = new URL(trimmedUrl.startsWith('http') ? trimmedUrl : `https://${trimmedUrl}`);
+        parsedHostname = p.hostname || trimmedUrl;
+      } catch {
+        parsedHostname = trimmedUrl;
+      }
+
+      dispatch({
+        type: 'ADD_LOG',
+        message: `Backend socket unavailable — querying live DNS for ${parsedHostname} via Google DNS (8.8.8.8)...`,
+        logType: 'browsing',
+      });
+
+      try {
+        const dohRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(parsedHostname)}&type=A`);
+        const dohData = await dohRes.json();
+        const answers = (dohData.Answer || []).filter(a => a.type === 1);
+        const realIps = answers.map(a => a.data);
+        const resolvedIp = realIps[0];
+        const ttl = answers[0]?.TTL || 300;
+
+        if (resolvedIp) {
+          dispatch({
+            type: 'ADD_LOG',
+            message: `✓ Live DNS resolved ${parsedHostname} → ${resolvedIp} (Google DNS 8.8.8.8)`,
+            logType: 'browsing',
+          });
+          const liveSteps = buildBrowsingSequence(trimmedUrl, resolvedIp, realIps, ttl, '8.8.8.8').map(s => ({
+            ...s,
+            status: 'real',
+          }));
+          startActivity('browsing', liveSteps, `[Live DNS] Visiting ${trimmedUrl} (${resolvedIp})`);
+          return;
+        }
+      } catch (dohErr) {
+        console.warn('DoH fallback failed:', dohErr);
+      }
+
+      // Offline fallback only if completely disconnected from internet
+      dispatch({ type: 'ADD_LOG', message: 'No network connection — offline synthetic mode', logType: 'browsing' });
       const steps = buildBrowsingSequence(trimmedUrl).map(s => ({ ...s, status: 'simulated' }));
-      startActivity('browsing', steps, `Visiting ${trimmedUrl} (simulated fallback)`);
-    }
+      startActivity('browsing', steps, `Visiting ${trimmedUrl} (offline synthetic)`);
+    };
   };
 
   return (

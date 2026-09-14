@@ -96,7 +96,7 @@ async def browse_stream(url: str):
             normalized_url = f"https://{normalized_url}"
 
         parsed = urlparse(normalized_url)
-        hostname = parsed.hostname or normalized_url
+        hostname = parsed.hostname or (parsed.netloc.split("@")[-1].split(":")[0] if "@" in parsed.netloc else parsed.netloc) or normalized_url
 
         # 1. Real DNS resolution
         dns_events = await resolve_dns(hostname)
@@ -119,7 +119,15 @@ async def browse_stream(url: str):
 
         yield done_sse()
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 @app.get("/api/mail/send")
 async def mail_send(
@@ -187,7 +195,15 @@ async def mail_send(
             await asyncio.sleep(0.01)
         yield done_sse()
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 @app.get("/api/stream/start")
 async def stream_start(request: Request, quality: str = "720p", segments: int = 6):
@@ -199,7 +215,15 @@ async def stream_start(request: Request, quality: str = "720p", segments: int = 
             await asyncio.sleep(0.01)
         yield done_sse()
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 @app.get("/api/stream/media/master.m3u8")
 def get_master():

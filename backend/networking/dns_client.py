@@ -76,18 +76,20 @@ async def resolve_dns(hostname: str) -> list[dict]:
             raw_ans += f"{hostname}.              {ttl}     IN      A       {ip}\n"
         raw_ans += f"\n;; Query time: {int(elapsed_ms)} msec\n;; SERVER: {server}#53({server}) (UDP)"
 
+        ips_summary = ", ".join(ips)
         key_fields = [
             {"label": "Status", "value": "NOERROR"},
             {"label": "Resolved IP", "value": ips[0] if ips else "None"},
+            {"label": "All Records", "value": ips_summary},
             {"label": "TTL", "value": f"{ttl}s"},
-            {"label": "Server", "value": str(server)},
+            {"label": "DNS Server", "value": str(server)},
         ]
 
         resp_event = ProtocolEvent(
             id=f"dns-{txn_id}-resp",
             protocol="DNS",
             direction="server→client",
-            summary=f"DNS {hostname} → {ips[0] if ips else 'None'} (TTL {ttl}s)",
+            summary=f"DNS {hostname} → {ips[0] if ips else 'None'}" + (f" (+{len(ips)-1} more)" if len(ips) > 1 else ""),
             raw=raw_ans,
             keyFields=key_fields,
             offsetMs=elapsed_ms,

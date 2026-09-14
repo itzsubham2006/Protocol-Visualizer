@@ -225,15 +225,31 @@ async def perform_full_browse_pipeline(url: str, pre_resolved_ip: str = None) ->
         active_sock.sendall(http_req_raw.encode())
 
         resp_buffer = b""
-        active_sock.settimeout(12)
+        active_sock.settimeout(5)
+        content_length = None
         while True:
-            chunk = active_sock.recv(8192)
-            if not chunk:
-                break
-            resp_buffer += chunk
-            # If we've got the headers and a reasonable body preview, we can stop
-            if b"\r\n\r\n" in resp_buffer and len(resp_buffer) > 30000:
-                break
+            try:
+                chunk = active_sock.recv(8192)
+                if not chunk:
+                    break
+                resp_buffer += chunk
+                if b"\r\n\r\n" in resp_buffer:
+                    header_part, body_part = resp_buffer.split(b"\r\n\r\n", 1)
+                    if content_length is None:
+                        for h in header_part.split(b"\r\n"):
+                            if h.lower().startswith(b"content-length:"):
+                                try:
+                                    content_length = int(h.split(b":", 1)[1].strip())
+                                except ValueError:
+                                    pass
+                    if content_length is not None and len(body_part) >= content_length:
+                        break
+                    if len(resp_buffer) > 30000:
+                        break
+            except socket.timeout:
+                if b"\r\n\r\n" in resp_buffer:
+                    break
+                raise
 
         active_sock.close()
 
