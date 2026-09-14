@@ -9,6 +9,9 @@
 ## Table of Contents
 1. [Deliverable 1: Working Dashboard & Execution Guide](#1-deliverable-1-working-dashboard--execution-guide)
 2. [Deliverable 2: AI Usage Log, Artifacts & Prompt History](#2-deliverable-2-ai-usage-log-artifacts--prompt-history)
+   - [2.1 AI Platforms and Artifact Storage Links](#21-ai-platforms-and-artifact-storage-links)
+   - [2.2 Comprehensive Prompt Engineering History & AI Interaction Log](#22-comprehensive-prompt-engineering-history--ai-interaction-log)
+   - [2.3 Detailed AI Usage & Development Evolution Log](#23-detailed-ai-usage--development-evolution-log)
 3. [Deliverable 3: Demo Video & Visual Evidence](#3-deliverable-3-demo-video--visual-evidence)
 4. [Deliverable 4: Technical Reflection Document](#4-deliverable-4-technical-reflection-document)
    - [4.1 Chosen AI Platform(s) and Model(s) & Rationale](#41-chosen-ai-platforms-and-models--rationale)
@@ -122,6 +125,297 @@ The following chronological log details the iterative prompts, tasks assigned to
 | **Phase 5: Bug Fix - SSE Streaming Playback** | *"In browsing mode, during live SSE streaming, the playback stops prematurely before all 5 network steps arrive from the backend."* | Investigated `SessionContext.jsx` and discovered `STEP_FORWARD` set `isPlaying: false` whenever index caught up to buffered steps. Updated reducer to check `isStreaming` state: `keepPlaying = state.isStreaming ? true : isAtEnd ? false : state.isPlaying`. | Resolved in commit `522a0bc`. The timeline and flowchart now smoothly stream all incoming packets in real-time. |
 | **Phase 6: Real Browsing 5-Step Pipeline** | *"Browsing should not just show an HTTP GET and 200 OK. It must show the real low-level sequence: DNS resolution, TCP handshake, TLS handshake, HTTP request, and HTTP response."* | Implemented authentic 5-step socket pipeline in `backend/networking/http_client.py` capturing socket connect timestamps, SSL cipher negotiation, HTTP raw headers, and timing metrics. | Successfully displays low-level packet mechanics with real DNS query times and IP resolution. |
 | **Phase 7: Production Deployment & Containerization** | *"Create Dockerfile and Railway deployment configuration so the full application (frontend and FastAPI backend) runs in production."* | Configured multi-stage Docker build, Vite production build, FastAPI static file mounting, `railway.json`, and dynamic `$PORT` binding. Switched base image from Alpine to `node:22-slim` to avoid `musl` libc issues. | Application successfully deployed live at `https://protoviz.up.railway.app/`. |
+
+---
+
+### 2.3 Detailed AI Usage & Development Evolution Log
+
+#### 2.3.1 AI Tool Used
+
+**AI Coding Platform:** Google Antigravity  
+**Project:** Protocol Visualizer  
+**Purpose:** Development and improvement of a Computer Networks Application Layer protocol visualization system.  
+
+Google Antigravity was used as an agentic AI coding assistant to inspect the existing project, modify the implementation, create new backend components, improve the UI, and test the application.
+
+---
+
+#### 2.3.2 Initial Project Development
+
+The initial application was a React + Vite frontend containing:
+
+* A dual-panel interface
+* Browsing, Mail, and Streaming activities
+* Activity logs
+* Protocol visualization
+* Playback controls such as Play, Pause, Previous, Next and Replay
+* Simulated DNS, HTTP, SMTP and streaming protocol exchanges
+
+Antigravity inspected the existing architecture and identified that the protocol exchanges were initially generated on the client side using simulated data rather than actual network communication.
+
+---
+
+#### 2.3.3 UI Design and Improvement
+
+I used Antigravity to redesign the existing interface while preserving the application's functionality.
+
+##### Major UI requirements given to the AI:
+
+* Use a professional dark theme
+* Improve typography
+* Use **Bricolage Grotesque** for the interface
+* Remove unnecessary gradients
+* Use a solid professional color palette
+* Remove excessive border radius
+* Maintain exactly two main panels
+* Improve the Protocol Inspector and Activity Panel
+* Preserve existing interactions and animations
+
+Antigravity subsequently modified the UI while keeping the existing application structure and features.
+
+---
+
+#### 2.3.4 Removing Misleading Simulation Indicators
+
+One important improvement was making the UI accurately distinguish between real and simulated networking.
+
+The original application displayed:
+
+* `LIVE`
+* `TLS 1.3 Active`
+
+even though the application was not actually capturing real network communication.
+
+I instructed Antigravity not to claim that networking was real unless it was actually implemented. The new design introduced separate **REAL NETWORK MODE** and **SIMULATION FALLBACK** states.
+
+Protocol events were also given provenance labels such as:
+
+* `REAL NETWORK EVENT`
+* `SIMULATED EVENT`
+
+This was specifically intended to maintain academic honesty.
+
+---
+
+#### 2.3.5 Converting Browsing to Real Networking
+
+I instructed Antigravity to replace the simulated browsing protocol with actual networking.
+
+The required architecture became:
+
+**Browser → FastAPI → Python networking layer → Real DNS / HTTP servers → Protocol events → Browser**
+
+For browsing, Antigravity implemented:
+
+* Real DNS resolution
+* Real HTTP/HTTPS requests
+* Actual resolved IP addresses
+* Actual HTTP status codes
+* Actual response headers
+* Real network timing
+* Error reporting for failed requests
+
+The backend uses Python networking modules, including `dnspython` and `httpx`.
+
+---
+
+#### 2.3.6 Converting Mail to Real SMTP Communication
+
+I specifically requested that SMTP should use a real TCP connection instead of fabricated SMTP messages.
+
+The implementation uses a local SMTP test server:
+
+**127.0.0.1:2525**
+
+The SMTP client establishes a real TCP connection using Python sockets and performs an RFC 5321 SMTP conversation.
+
+The conversation includes real commands and responses such as:
+
+* `220`
+* `EHLO`
+* `MAIL FROM`
+* `RCPT TO`
+* `DATA`
+* `QUIT`
+
+The user's recipient, subject and message body are included in the actual SMTP DATA payload.
+
+The local SMTP server does not deliver emails externally; it is used to demonstrate the real TCP/SMTP communication safely.
+
+---
+
+#### 2.3.7 Converting Streaming to Real HTTP Requests
+
+Antigravity was also instructed to make the Streaming activity perform real HTTP communication.
+
+The implementation includes:
+
+* HLS master playlist
+* Different quality/rendition playlists
+* Media segments
+* Real HTTP GET requests
+* Visualization of playlist and segment requests
+
+The streaming service provides playlists and MPEG-TS chunks and performs real HTTP requests to retrieve them.
+
+---
+
+#### 2.3.8 Real-Time Event Visualization
+
+A major requirement was that the visualization should show protocol events as they occur instead of generating the complete sequence beforehand.
+
+Antigravity implemented progressive event streaming using **Server-Sent Events (SSE)**.
+
+Each event contains information such as:
+
+* Timestamp
+* Protocol
+* Direction
+* Message
+* Real/simulated status
+
+The existing playback controls were preserved and operate on the received event list.
+
+---
+
+#### 2.3.9 Real-Time / Simulation Toggle
+
+A universal toggle was added to switch between:
+
+##### Real-Time Mode
+
+* Real DNS queries
+* Real HTTP/HTTPS requests
+* Real TCP SMTP communication
+* Real streaming HTTP requests
+* Events labelled as real
+
+##### Simulation Mode
+
+* Offline simulated protocol exchanges
+* No real network communication
+* Events labelled as simulated
+
+This allows the same application to demonstrate both protocol concepts and actual networking behavior.
+
+---
+
+#### 2.3.10 Error Handling and Accuracy
+
+I instructed Antigravity not to convert network failures into fake successful protocol exchanges.
+
+Examples of required error handling included:
+
+* DNS resolution failure
+* HTTP request failure
+* SMTP server unavailable
+* Connection refused
+* Timeout
+* Invalid URL
+
+The application therefore reports actual errors instead of displaying fabricated protocol messages.
+
+---
+
+#### 2.3.11 Testing and Debugging
+
+Antigravity was used to test and debug the implementation.
+
+The project included automated tests covering:
+
+* DNS resolution
+* HTTP communication
+* Raw TCP SMTP communication
+* HLS streaming
+* Error handling
+* FastAPI SSE endpoints
+
+The reported test result was:
+
+**13/13 tests passed**
+
+The frontend production build also completed successfully with zero errors.
+
+---
+
+#### 2.3.12 Debugging a Real-Time Browsing Problem
+
+During testing, I identified that the Browsing activity was pausing before all network events had been displayed.
+
+I reported the issue to Antigravity.
+
+Antigravity analyzed the playback logic and found that the playback state was being stopped before the remaining remote HTTPS events had arrived.
+
+It modified `SessionContext.jsx` and `usePlayback.js` so that incoming SSE events could continue the playback correctly.
+
+After the fix, the browsing sequence could progress through:
+
+**DNS → TCP → TLS → HTTP Request → HTTP Response**
+
+The reported test suite again passed all 13 tests and the production build succeeded.
+
+---
+
+#### 2.3.13 Responsive UI Fixes
+
+After testing the application on smaller screens, I asked Antigravity to fix overlapping elements and spacing problems without changing the functionality.
+
+The AI adjusted:
+
+* Activity log timestamps
+* Message wrapping
+* Playback controls
+* Timeline headers
+* Message cards
+* Mobile/tablet spacing
+* Dashboard padding
+
+The changes were UI-only and the existing functionality was preserved. The reported build and 13 automated tests remained successful.
+
+---
+
+#### 2.3.14 AI Contribution Summary
+
+Google Antigravity was used throughout the development process for:
+
+1. Inspecting the existing project architecture
+2. Planning modifications
+3. Generating and modifying frontend code
+4. Designing the UI
+5. Creating the Python/FastAPI backend
+6. Implementing networking modules
+7. Implementing real DNS, HTTP, SMTP and streaming communication
+8. Connecting frontend and backend using SSE
+9. Debugging playback and networking issues
+10. Creating automated tests
+11. Testing the application
+12. Updating documentation
+
+I provided the requirements, design decisions, networking requirements, corrections and testing feedback, while Antigravity assisted with implementation and debugging.
+
+---
+
+#### 2.3.15 Final Outcome & Architecture Evolution
+
+The project was evolved from a primarily simulated protocol visualizer into a system capable of demonstrating real network communication while retaining a simulation mode.
+
+The final architecture includes:
+
+```
+React/Vite Frontend
+       ↓
+ FastAPI Backend
+       ↓
+Python Networking Layer
+       ↓
+DNS / HTTP / TCP SMTP / HLS Communication
+       ↓
+Real-Time Protocol Events
+       ↓
+Protocol Visualization
+```
+
+The project retained its required dual-panel structure and protocol playback controls while adding real networking capabilities.
 
 ---
 
