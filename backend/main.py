@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from backend.networking.dns_client import resolve_dns
-from backend.networking.http_client import perform_http_request
+from backend.networking.http_client import perform_full_browse_pipeline
 from backend.networking.smtp_client import perform_smtp_conversation
 from backend.networking.stream_service import (
     generate_master_playlist,
@@ -111,7 +111,6 @@ async def browse_stream(url: str):
         last_dns_offset = dns_events[-1]["offsetMs"] if dns_events else 0
 
         # 2, 3, 4, 5. Real TCP connect -> TLS handshake -> HTTP request -> HTTP response
-        from backend.networking.http_client import perform_full_browse_pipeline
         pipeline_events = await perform_full_browse_pipeline(normalized_url, pre_resolved_ip=resolved_ip)
         for ev in pipeline_events:
             ev["offsetMs"] += last_dns_offset + 20

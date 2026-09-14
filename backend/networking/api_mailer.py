@@ -79,8 +79,25 @@ async def perform_api_mail_delivery(
         events.append(asdict(evt))
         step_counter += 1
 
-    resend_key = (api_key.strip() if api_key and api_key.strip() else os.getenv("RESEND_API_KEY", "")).strip()
-    brevo_key = os.getenv("BREVO_API_KEY", "").strip()
+    raw_api_key = (api_key or "").strip()
+    resend_env = os.getenv("RESEND_API_KEY", "").strip()
+    brevo_env = os.getenv("BREVO_API_KEY", "").strip()
+
+    resend_key = ""
+    brevo_key = ""
+
+    if raw_api_key.startswith("xkeysib-"):
+        brevo_key = raw_api_key
+    elif raw_api_key.startswith("re_"):
+        resend_key = raw_api_key
+    elif raw_api_key:
+        # Default user-entered key fallback
+        resend_key = raw_api_key
+    elif brevo_env:
+        # Brevo explicitly configured in environment
+        brevo_key = brevo_env
+    elif resend_env:
+        resend_key = resend_env
 
     if resend_key:
         sender, reply_to = sanitize_sender_for_resend(from_email)
@@ -137,13 +154,19 @@ async def perform_api_mail_delivery(
                         ],
                     )
                 else:
+                    err_detail = res_body[:120]
+                    try:
+                        err_json = res.json()
+                        err_detail = err_json.get("message", err_detail)
+                    except Exception:
+                        pass
                     add_event(
                         "server→client",
-                        f"HTTP {status_code} Error from Resend API",
+                        f"HTTP {status_code} Error: {err_detail}",
                         f"HTTP/1.1 {status_code}\r\nContent-Type: application/json\r\n\r\n{res_body}",
                         [
-                            {"label": "Status", "value": str(status_code)},
-                            {"label": "Error", "value": res_body[:120]},
+                            {"label": "Status", "value": f"{status_code} Error"},
+                            {"label": "API Message", "value": err_detail},
                         ],
                     )
         except Exception as e:
@@ -156,9 +179,13 @@ async def perform_api_mail_delivery(
         return events
 
     elif brevo_key:
-        sender_email = from_email.strip() if from_email and from_email.strip() else "noreply@protocol-visualizer.app"
+        raw_from = (from_email or "").strip() or os.getenv("BREVO_FROM", "").strip() or os.getenv("SMTP_USER", "").strip()
+        disp_name, parsed_addr = email.utils.parseaddr(raw_from)
+        sender_email = parsed_addr or raw_from or "testmailfirstjan@gmail.com"
+        sender_name = disp_name or "Protocol Visualizer"
+
         payload = {
-            "sender": {"name": "Protocol Visualizer", "email": sender_email},
+            "sender": {"name": sender_name, "email": sender_email},
             "to": [{"email": to.strip()}],
             "subject": subject.strip(),
             "textContent": body.strip(),
@@ -207,13 +234,19 @@ async def perform_api_mail_delivery(
                         ],
                     )
                 else:
+                    err_detail = res_body[:120]
+                    try:
+                        err_json = res.json()
+                        err_detail = err_json.get("message", err_detail)
+                    except Exception:
+                        pass
                     add_event(
                         "server→client",
-                        f"HTTP {status_code} Error from Brevo API",
+                        f"HTTP {status_code} Error: {err_detail}",
                         f"HTTP/1.1 {status_code}\r\nContent-Type: application/json\r\n\r\n{res_body}",
                         [
-                            {"label": "Status", "value": str(status_code)},
-                            {"label": "Error", "value": res_body[:120]},
+                            {"label": "Status", "value": f"{status_code} Error"},
+                            {"label": "API Message", "value": err_detail},
                         ],
                     )
         except Exception as e:
