@@ -8,7 +8,7 @@ import AboutModal from './components/about/AboutModal';
 function AppContent() {
   const { dispatch, isRealNetwork, realTimeEnabled, learnMode } = useSession();
   const [statusText, setStatusText] = useState('');
-  const [showAbout, setShowAbout] = useState(false);
+  const [showAbout, setShowAbout] = useState(true);
 
   useEffect(() => {
     // Check if FastAPI backend is available
