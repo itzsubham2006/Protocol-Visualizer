@@ -3,10 +3,12 @@ import { SessionProvider, useSession } from './context/SessionContext';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Footer from './components/layout/Footer';
 import ToastContainer from './components/layout/ToastContainer';
+import AboutModal from './components/about/AboutModal';
 
 function AppContent() {
   const { dispatch, isRealNetwork, realTimeEnabled, learnMode } = useSession();
   const [statusText, setStatusText] = useState('');
+  const [showAbout, setShowAbout] = useState(false);
 
   useEffect(() => {
     // Check if FastAPI backend is available
@@ -93,6 +95,17 @@ function AppContent() {
               <span className="learn-mode-icon">🎓</span>
               <span className="learn-mode-label">Learn</span>
             </button>
+
+            {/* About / Guide Button */}
+            <button
+              className="navbar-about-btn"
+              onClick={() => setShowAbout(true)}
+              title="Open Documentation, Protocol Guides & Architecture"
+              type="button"
+            >
+              <span className="navbar-about-icon">📖</span>
+              <span className="navbar-about-label">Guide</span>
+            </button>
           </div>
 
           <div className="app-header-right">
@@ -109,10 +122,13 @@ function AppContent() {
       <DashboardLayout />
 
       {/* FOOTER */}
-      <Footer />
+      <Footer onOpenAbout={() => setShowAbout(true)} />
 
       {/* TOAST NOTIFICATIONS */}
       <ToastContainer />
+
+      {/* ABOUT & DOCUMENTATION MODAL */}
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
     </div>
   );
 }

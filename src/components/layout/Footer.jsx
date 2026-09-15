@@ -1,4 +1,4 @@
-export default function Footer() {
+export default function Footer({ onOpenAbout }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -36,6 +36,16 @@ export default function Footer() {
         <div className="footer-col footer-meta">
           <span className="footer-heading">Project</span>
           <div className="footer-links">
+            {onOpenAbout && (
+              <button
+                type="button"
+                onClick={onOpenAbout}
+                className="footer-link footer-guide-btn"
+                title="Open Documentation & Architecture Guide"
+              >
+                <span>📖 Documentation & Guide</span>
+              </button>
+            )}
             <a
               href="https://github.com/itzsubham2006/Protocol-Visualizer"
               target="_blank"
@@ -55,7 +65,10 @@ export default function Footer() {
 
       {/* Bottom Copyright Bar */}
       <div className="app-footer-bottom">
-        <p>© {currentYear} Protocol Visualizer. Dual Real-Time & Simulation Network Inspector.</p>
+        <p className="footer-copyright-text">
+          <span className="footer-copyright-main">© {currentYear} Protocol Visualizer.</span>{' '}
+          <span className="footer-copyright-sub">Dual Real-Time & Simulation Network Inspector.</span>
+        </p>
       </div>
     </footer>
   );
