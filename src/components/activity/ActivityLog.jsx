@@ -34,7 +34,7 @@ export default function ActivityLog() {
       ) : (
         <ul className="activity-log-list" ref={listRef}>
           {activityLog.map((entry) => (
-            <li key={entry.id} className="log-entry">
+            <li key={entry.id} className={`log-entry log-entry-${entry.type || 'default'}`}>
               <span className="log-entry-time">{entry.timestamp}</span>
               <span className="log-entry-message">{entry.message}</span>
             </li>

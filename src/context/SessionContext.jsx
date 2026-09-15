@@ -22,6 +22,8 @@ const initialState = {
   isRealNetwork: false,     // whether backend is available
   isStreaming: false,       // whether events are currently being streamed via SSE
   realTimeEnabled: true,    // user toggle for Real-Time vs Simulation mode
+  learnMode: false,         // whether Learn Mode tooltips are shown
+  toasts: [],               // [{ id, message, icon, variant }]
 };
 
 function sessionReducer(state, action) {
@@ -152,6 +154,28 @@ function sessionReducer(state, action) {
       return {
         ...state,
         activityLog: [],
+      };
+
+    case 'TOGGLE_LEARN_MODE':
+      return { ...state, learnMode: !state.learnMode };
+
+    case 'ADD_TOAST': {
+      const toast = {
+        id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        message: action.message,
+        icon: action.icon || '📡',
+        variant: action.variant || 'info',
+      };
+      return {
+        ...state,
+        toasts: [...state.toasts, toast],
+      };
+    }
+
+    case 'REMOVE_TOAST':
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.id),
       };
 
     default:

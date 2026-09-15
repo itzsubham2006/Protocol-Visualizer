@@ -1,4 +1,6 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import KeyboardLegend from './KeyboardLegend';
+import { useSession } from '../../context/SessionContext';
 
 const SPEEDS = [0.5, 1, 2, 4];
 
@@ -16,6 +18,9 @@ export default function PlaybackControls({
   isAtStart,
   hasSteps,
 }) {
+  const [showLegend, setShowLegend] = useState(false);
+  const { dispatch } = useSession();
+
   const progressPercent = totalSteps > 0
     ? Math.max(0, ((currentStepIndex + 1) / totalSteps) * 100)
     : 0;
@@ -47,12 +52,29 @@ export default function PlaybackControls({
       default:
         break;
     }
+
+    // '?' shortcut for keyboard legend
+    if (e.key === '?' || (e.shiftKey && e.code === 'Slash')) {
+      e.preventDefault();
+      setShowLegend((prev) => !prev);
+    }
   }, [togglePlay, stepForward, stepBackward, replay]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  // Scrubbable progress bar click handler
+  const handleProgressClick = useCallback((e) => {
+    const track = e.currentTarget;
+    const rect = track.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percent = clickX / rect.width;
+    const targetIndex = Math.max(0, Math.min(Math.round(percent * (totalSteps - 1)), totalSteps - 1));
+    dispatch({ type: 'SET_PLAYING', isPlaying: false });
+    dispatch({ type: 'SET_STEP_INDEX', index: targetIndex });
+  }, [totalSteps, dispatch]);
 
   if (!hasSteps) return null;
 
@@ -99,9 +121,13 @@ export default function PlaybackControls({
         </button>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress bar (scrubbable) */}
       <div className="playback-progress">
-        <div className="playback-progress-bar-track">
+        <div
+          className="playback-progress-bar-track scrubbable"
+          onClick={handleProgressClick}
+          title="Click to jump to a step"
+        >
           <div
             className="playback-progress-bar-fill"
             style={{ width: `${progressPercent}%` }}
@@ -125,6 +151,18 @@ export default function PlaybackControls({
           </button>
         ))}
       </div>
+
+      {/* Keyboard shortcut button */}
+      <button
+        className="playback-btn keyboard-btn"
+        onClick={() => setShowLegend(true)}
+        title="Keyboard shortcuts (?)"
+      >
+        ⌨
+      </button>
+
+      {/* Keyboard Legend Overlay */}
+      <KeyboardLegend isOpen={showLegend} onClose={() => setShowLegend(false)} />
     </div>
   );
 }

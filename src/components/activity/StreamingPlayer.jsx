@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { buildStreamingSequence } from '../../protocols/sequenceBuilders';
 
@@ -6,8 +6,24 @@ export default function StreamingPlayer() {
   const [quality, setQuality] = useState('720p');
   const [segmentCount, setSegmentCount] = useState(6);
   const { startActivity, isPlaying, steps, currentStepIndex, dispatch, realTimeEnabled } = useSession();
+  const eventSourceRef = useRef(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
 
   const handleStartStream = () => {
+    // Close previous stream if any
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
     // If Real-Time is disabled, run pure offline simulation
     if (!realTimeEnabled) {
       const seqSteps = buildStreamingSequence(quality, segmentCount).map(s => ({ ...s, status: 'simulated' }));
@@ -25,12 +41,15 @@ export default function StreamingPlayer() {
         segments: String(segmentCount),
       });
       const eventSource = new EventSource(`/api/stream/start?${params.toString()}`);
+      eventSourceRef.current = eventSource;
 
       eventSource.onmessage = (event) => {
         if (event.data === '[DONE]') {
           eventSource.close();
+          eventSourceRef.current = null;
           dispatch({ type: 'FINISH_STREAMING' });
           dispatch({ type: 'ADD_LOG', message: 'Streaming session completed (real network)', logType: 'streaming' });
+          dispatch({ type: 'ADD_TOAST', message: `Stream complete: ${quality} × ${segmentCount} segments`, icon: '📺', variant: 'success' });
           return;
         }
         try {
@@ -43,6 +62,7 @@ export default function StreamingPlayer() {
 
       eventSource.onerror = () => {
         eventSource.close();
+        eventSourceRef.current = null;
         dispatch({ type: 'FINISH_STREAMING' });
         // Fall back to simulation
         dispatch({ type: 'ADD_LOG', message: 'Backend unavailable — using simulation fallback', logType: 'streaming' });

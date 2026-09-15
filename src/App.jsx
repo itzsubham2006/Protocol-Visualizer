@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { SessionProvider, useSession } from './context/SessionContext';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Footer from './components/layout/Footer';
+import ToastContainer from './components/layout/ToastContainer';
 
 function AppContent() {
-  const { dispatch, isRealNetwork, realTimeEnabled } = useSession();
+  const { dispatch, isRealNetwork, realTimeEnabled, learnMode } = useSession();
   const [statusText, setStatusText] = useState('');
 
   useEffect(() => {
@@ -81,6 +82,17 @@ function AppContent() {
                   : 'OFFLINE'}
               </span>
             </div>
+
+            {/* Learn Mode Toggle */}
+            <button
+              className={`learn-mode-toggle ${learnMode ? 'active' : ''}`}
+              onClick={() => dispatch({ type: 'TOGGLE_LEARN_MODE' })}
+              title="Toggle Learn Mode — show educational tooltips on protocol steps"
+              type="button"
+            >
+              <span className="learn-mode-icon">🎓</span>
+              <span className="learn-mode-label">Learn</span>
+            </button>
           </div>
 
           <div className="app-header-right">
@@ -98,6 +110,9 @@ function AppContent() {
 
       {/* FOOTER */}
       <Footer />
+
+      {/* TOAST NOTIFICATIONS */}
+      <ToastContainer />
     </div>
   );
 }

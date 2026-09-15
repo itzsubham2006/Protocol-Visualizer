@@ -4,6 +4,8 @@ import { usePlayback } from '../../hooks/usePlayback';
 import PlaybackControls from './PlaybackControls';
 import Timeline from './Timeline';
 import MessageCard from './MessageCard';
+import SessionSummary from './SessionSummary';
+import SequenceDiagram from './SequenceDiagram';
 
 export default function ProtocolPanel() {
   const { steps, currentStepIndex, selectedStepId } = useSession();
@@ -54,6 +56,20 @@ export default function ProtocolPanel() {
                   <line x1="2" y1="12" x2="14" y2="12" />
                 </svg>
                 <span>Rows</span>
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === 'sequence' ? 'active' : ''}`}
+                onClick={() => setViewMode('sequence')}
+                title="Sequence Diagram View"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="4" y1="2" x2="4" y2="14" />
+                  <line x1="12" y1="2" x2="12" y2="14" />
+                  <line x1="4" y1="6" x2="12" y2="6" />
+                  <polyline points="10,4 12,6 10,8" />
+                </svg>
+                <span>Sequence</span>
               </button>
             </div>
           )}
@@ -108,16 +124,26 @@ export default function ProtocolPanel() {
           <>
             <PlaybackControls {...playback} />
 
+            <SessionSummary />
+
             {selectedStep && (
               <MessageCard step={selectedStep} />
             )}
 
-            <Timeline
-              steps={steps}
-              currentStepIndex={currentStepIndex}
-              selectedStepId={selectedStepId}
-              viewMode={viewMode}
-            />
+            {viewMode === 'sequence' ? (
+              <SequenceDiagram
+                steps={steps}
+                currentStepIndex={currentStepIndex}
+                selectedStepId={selectedStepId}
+              />
+            ) : (
+              <Timeline
+                steps={steps}
+                currentStepIndex={currentStepIndex}
+                selectedStepId={selectedStepId}
+                viewMode={viewMode}
+              />
+            )}
           </>
         )}
       </div>

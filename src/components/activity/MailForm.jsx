@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { buildMailSequence } from '../../protocols/sequenceBuilders';
 
@@ -9,8 +9,18 @@ export default function MailForm() {
   const [smtpConfig, setSmtpConfig] = useState(null);
   const [targetMode, setTargetMode] = useState('local'); // 'local' or 'live'
   const [resendApiKey, setResendApiKey] = useState('');
+  const eventSourceRef = useRef(null);
 
   const { startActivity, isPlaying, dispatch, realTimeEnabled, isRealNetwork } = useSession();
+
+  // Cleanup EventSource on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
 
   // Check backend .env configuration
   useEffect(() => {
@@ -28,6 +38,12 @@ export default function MailForm() {
     const trimmedTo = to.trim();
     const trimmedSubject = subject.trim();
     const trimmedBody = body.trim();
+
+    // Close any previous SSE connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
 
     // If Real-Time is disabled, run pure offline simulation
     if (!realTimeEnabled) {
@@ -78,10 +94,12 @@ export default function MailForm() {
       }
 
       const eventSource = new EventSource(`/api/mail/send?${params.toString()}`);
+      eventSourceRef.current = eventSource;
 
       eventSource.onmessage = (event) => {
         if (event.data === '[DONE]') {
           eventSource.close();
+          eventSourceRef.current = null;
           dispatch({ type: 'FINISH_STREAMING' });
           if (isLive) {
             dispatch({
@@ -89,12 +107,14 @@ export default function MailForm() {
               message: `✓ Real email successfully dispatched to ${trimmedTo}! Check recipient inbox.`,
               logType: 'mail',
             });
+            dispatch({ type: 'ADD_TOAST', message: `Email delivered to ${trimmedTo}!`, icon: '✉️', variant: 'success' });
           } else {
             dispatch({
               type: 'ADD_LOG',
               message: 'SMTP conversation completed with local test server (127.0.0.1:2525)',
               logType: 'mail',
             });
+            dispatch({ type: 'ADD_TOAST', message: 'SMTP conversation completed', icon: '✅', variant: 'smtp' });
           }
           return;
         }
@@ -106,6 +126,7 @@ export default function MailForm() {
           // Check if this is a connection error event
           if (step.summary && step.summary.includes('Cannot connect')) {
             dispatch({ type: 'ADD_LOG', message: `Cannot connect to SMTP server at ${targetServer}`, logType: 'mail' });
+            dispatch({ type: 'ADD_TOAST', message: `SMTP connection failed: ${targetServer}`, icon: '❌', variant: 'error' });
           }
         } catch (err) {
           console.error('Failed to parse SSE event:', err);
@@ -114,6 +135,7 @@ export default function MailForm() {
 
       eventSource.onerror = () => {
         eventSource.close();
+        eventSourceRef.current = null;
         dispatch({ type: 'FINISH_STREAMING' });
         dispatch({ type: 'ADD_LOG', message: 'Backend unavailable — using simulation fallback', logType: 'mail' });
         const steps = buildMailSequence({
@@ -190,7 +212,7 @@ export default function MailForm() {
                 <div style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '7px', height: '7px', background: '#10b981', display: 'inline-block' }}></span>
                   <span>
-                    HTTPS CLOUD DELIVERY ACTIVE ({hasDirectApiKey ? 'Custom Resend Key' : smtpConfig.api_provider}). Outbound emails sent over Port 443 — guaranteed to deliver from Railway!
+                    HTTPS CLOUD DELIVERY ACTIVE ({hasDirectApiKey ? 'Custom Resend Key' : (smtpConfig?.api_provider || 'Cloud API')}). Outbound emails sent over Port 443 — guaranteed to deliver from Railway!
                   </span>
                 </div>
               ) : smtpConfig && smtpConfig.is_live ? (

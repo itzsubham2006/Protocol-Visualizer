@@ -1,5 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
+import LearnTooltip from './LearnTooltip';
+import { getLearnContent } from '../../protocols/learnContent';
 
 function formatOffset(ms) {
   if (ms == null) return '0';
@@ -44,7 +46,7 @@ function getStepExtraDetail(step) {
 }
 
 export default function Timeline({ steps, currentStepIndex, selectedStepId, viewMode = 'flow' }) {
-  const { dispatch } = useSession();
+  const { dispatch, learnMode } = useSession();
   const timelineRef = useRef(null);
   const activeStepRef = useRef(null);
 
@@ -101,6 +103,7 @@ export default function Timeline({ steps, currentStepIndex, selectedStepId, view
                 <span className={`protocol-badge ${protocolClass}`}>
                   {step.protocol}
                 </span>
+                {learnMode && <LearnTooltip content={getLearnContent(step)} />}
                 <span className={`direction-arrow ${isClient ? 'client' : 'server'}`}>
                   {isClient ? 'Client → Server' : 'Server → Client'}
                 </span>
@@ -172,6 +175,7 @@ export default function Timeline({ steps, currentStepIndex, selectedStepId, view
               <div className="flow-meta-col">
                 <span className={`flow-meta-protocol ${protocolClass}`}>
                   {step.protocol}
+                  {learnMode && <LearnTooltip content={getLearnContent(step)} />}
                 </span>
                 <span className="flow-meta-time">
                   +{formatOffset(step.offsetMs)}ms
